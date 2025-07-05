@@ -108,7 +108,7 @@ def authenticate(password):
 if not st.session_state["authenticated"]:
     _, center_col, _ = st.columns([1, 1.5, 1])
     with center_col:
-        st.markdown("<div style='text-align:center;'><h2>산카쿠 데이터<br>통합 시스템</h2></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center;'><h2>산카쿠 분석 시스템</h2></div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         password = st.text_input("🔐 비밀번호를 입력하세요", type="password", key="password_input")
         
