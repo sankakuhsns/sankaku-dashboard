@@ -18,7 +18,7 @@ from google.oauth2 import service_account
 # --- Google Drive 설정 ---
 DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 
-# --- OKPOS 매출 파일 설정 ---
+# --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW = 7
 OKPOS_COL_DATE = 0
 OKPOS_COL_DAY_OF_WEEK = 1
@@ -26,23 +26,19 @@ OKPOS_COL_DINE_IN_SALES = 34
 OKPOS_COL_TAKEOUT_SALES = 36
 OKPOS_COL_DELIVERY_SALES = 38
 
-# --- 두리축산 파일 설정 ---
 DOORI_DATA_START_ROW = 4
 DOORI_COL_DATE = 1
 DOORI_COL_ITEM = 3
 DOORI_COL_AMOUNT = 6
 
-# --- 신성미트 파일 설정 ---
 SINSEONG_DATA_START_ROW = 3
 
-# --- 아워홈 파일 설정 ---
 OURHOME_DATA_START_ROW = 0
 OURHOME_COL_DATE = 1
 OURHOME_COL_ITEM = 3
 OURHOME_COL_AMOUNT = 11
 OURHOME_FILTER_COL = 14
 
-# --- 정산표 파일 설정 ---
 SETTLEMENT_DATA_START_ROW = 3
 SETTLEMENT_COL_PERSONNEL_NAME = 1
 SETTLEMENT_COL_PERSONNEL_AMOUNT = 2
@@ -63,13 +59,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# 2. ✅ 이 코드를 추가하여 자동 번역 기능 비활성화
-st.markdown(
-    '<meta name="google" content="notranslate">',
-    unsafe_allow_html=True
-)
-
+st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 st.markdown("""
 <style>
 /* 전체 스타일 */
@@ -89,37 +79,34 @@ def display_styled_title_box(title_text, background_color="#f5f5f5", font_size="
         </div>
     """, unsafe_allow_html=True)
 
-# ------------------ 2. 로그인 및 권한 관리 로직 ------------------
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
-    st.session_state["user_name"] = ""
-    st.session_state["allowed_branches"] = []
+# ------------------ 2. 로그인 및 데이터 로딩 관리 ------------------
 
 def authenticate(password):
     users = st.secrets.get("users", [])
     for user in users:
         if user["password"] == password:
-            st.session_state["authenticated"] = True
-            st.session_state["user_name"] = user["name"]
-            st.session_state["allowed_branches"] = user["allowed_branches"]
+            st.session_state.authenticated = True
+            st.session_state.user_name = user["name"]
+            st.session_state.allowed_branches = user["allowed_branches"]
             return True
     return False
 
-if not st.session_state["authenticated"]:
+def show_login_screen():
     _, center_col, _ = st.columns([1, 1.5, 1])
     with center_col:
         st.markdown("<div style='text-align:center;'><h2>산카쿠 분석 시스템</h2></div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        password = st.text_input("🔐 비밀번호를 입력하세요", type="password", key="password_input")
-        
-        if st.button("로그인", use_container_width=True):
-            if authenticate(password):
-                st.rerun()
-            else:
-                st.error("비밀번호가 틀렸습니다.")
+        with st.form("login_form"):
+            password = st.text_input("🔐 비밀번호를 입력하세요", type="password")
+            submitted = st.form_submit_button("로그인", use_container_width=True)
+            if submitted:
+                if authenticate(password):
+                    st.rerun()
+                else:
+                    st.error("비밀번호가 틀렸습니다.")
     st.stop()
 
-# ------------------ 3. Google Drive 데이터 추출 및 처리 함수 ------------------
+# ------------------ 3. 데이터 추출 함수들 ------------------
 
 def list_files_recursive(service, folder_id, path_prefix=""):
     files = []
@@ -348,29 +335,74 @@ def load_all_data_from_drive():
         st.error(f"Google Drive 데이터 로딩 중 심각한 오류가 발생했습니다: {e}")
         return pd.DataFrame(), {}, {}
 
-# ------------------ 4. 메인 앱 실행 ------------------
-# 로그인 후 환영 메시지 및 데이터 로딩 시작
-st.toast(f'{st.session_state["user_name"]}님, 환영합니다!', icon='🎉')
-time.sleep(0.5)
+# ==================================================================
+#                       메인 앱 실행 로직
+# ==================================================================
 
-loading_message = "모든 지점의 데이터를 로딩 중입니다..."
-if "all" not in st.session_state["allowed_branches"]:
-    loading_message = f'{", ".join(st.session_state["allowed_branches"])} 지점의 데이터를 로딩 중입니다...'
+# --- 1. 세션 상태 초기화 ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.user_name = ""
+    st.session_state.allowed_branches = []
+    # 데이터와 로딩 상태를 저장할 공간 초기화
+    st.session_state.df_all_branches = None
+    st.session_state.file_counts = None
+    st.session_state.processed_rows = None
 
-with st.spinner(loading_message):
-    df_all_branches, file_counts, processed_rows = load_all_data_from_drive()
+# --- 2. 로그인 화면 표시 ---
+if not st.session_state.authenticated:
+    show_login_screen()
 
-# 권한에 따라 데이터 필터링
-if not df_all_branches.empty:
-    if "all" in st.session_state["allowed_branches"]:
-        df = df_all_branches.copy()
-    else:
-        df = df_all_branches[df_all_branches['지점명'].isin(st.session_state["allowed_branches"])].copy()
-else:
-    df = pd.DataFrame()
+# --- 3. 최초 데이터 로딩 (로그인 후 1회만 실행) ---
+# 세션에 데이터가 없을 때만 로딩 프로세스를 실행
+if st.session_state.df_all_branches is None:
+    st.toast(f'{st.session_state.user_name}님, 환영합니다!', icon='🎉')
+    time.sleep(0.5)
+    
+    loading_message = "모든 지점의 데이터를 로딩 중입니다..."
+    if "all" not in st.session_state.allowed_branches:
+        loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
 
-if df.empty:
+    with st.spinner(loading_message):
+        # 데이터 로딩 함수를 호출하고 결과를 세션에 저장
+        df_all, counts, rows = load_all_data_from_drive()
+        st.session_state.df_all_branches = df_all
+        st.session_state.file_counts = counts
+        st.session_state.processed_rows = rows
+        st.rerun() # 데이터를 세션에 저장한 후 UI를 다시 그리기 위해 재실행
+
+# --- 4. 데이터 준비 및 필터링 ---
+df_all_branches = st.session_state.df_all_branches
+file_counts = st.session_state.file_counts
+processed_rows = st.session_state.processed_rows
+
+if df_all_branches is None or df_all_branches.empty:
     st.error("처리할 데이터가 없습니다. Google Drive 폴더, 파일 내용, 공유 설정을 확인해주세요.")
+    st.stop()
+
+# 권한에 따른 데이터 필터링
+if "all" in st.session_state.allowed_branches:
+    df = df_all_branches.copy()
+else:
+    df = df_all_branches[df_all_branches['지점명'].isin(st.session_state.allowed_branches)].copy()
+
+# --- 5. 사이드바 UI ---
+with st.sidebar:
+    st.title('📊 대시보드')
+    st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
+    st.markdown("---")
+    
+    지점목록 = sorted(df['지점명'].unique())
+    월목록 = sorted(df['월'].unique(), reverse=True)
+    
+    선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
+    선택_월 = st.multiselect("🗓️ 월 선택", 월목록, default=월목록)
+
+# --- 6. 메인 화면 UI ---
+df_filtered = df[df['지점명'].isin(선택_지점) & df['월'].isin(선택_월)]
+
+if df_filtered.empty:
+    st.warning("선택하신 조건에 해당하는 데이터가 없습니다. 필터를 조정해주세요.")
     st.stop()
 
 # --- 데이터 후처리 ---
@@ -394,24 +426,6 @@ VARIABLE_COST_ITEMS = ['식자재', '소모품']
 DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS = ['배달비']
 FIXED_COST_ITEMS = ['인건비', '광고비', '고정비']
 all_possible_expense_categories_for_analysis = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS + FIXED_COST_ITEMS))
-
-# ------------------ 5. 사이드바 및 필터 ------------------
-with st.sidebar:
-    st.title('📊 대시보드')
-    st.info(f"**로그인 계정:**\n\n{st.session_state['user_name']}")
-    st.markdown("---")
-    
-    지점목록 = sorted(df['지점명'].unique())
-    월목록 = sorted(df['월'].unique(), reverse=True)
-    
-    선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
-    선택_월 = st.multiselect("🗓️ 월 선택", 월목록, default=월목록)
-
-df_filtered = df[df['지점명'].isin(선택_지점) & df['월'].isin(선택_월)]
-
-if df_filtered.empty:
-    st.warning("선택하신 조건에 해당하는 데이터가 없습니다. 필터를 조정해주세요.")
-    st.stop()
 
 # --- 데이터 분리 ---
 매출 = df_filtered[df_filtered['분류'] == '매출'].copy()
