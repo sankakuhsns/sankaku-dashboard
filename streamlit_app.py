@@ -70,10 +70,11 @@ div[data-testid="stMultiSelect"] div[data-baseweb="tag"] { background-color: #e0
 .center-login { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .info-box { background-color: #f0f2f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid #e6e6e6; }
 
-/* ✅ 이 부분을 추가하여 KPI 소제목을 가운데 정렬합니다 */
-[data-testid="stMetricLabel"] > div {
-   width: 100%;
-   text-align: center;
+/* ✅✅✅ 수정된 KPI 소제목 가운데 정렬 코드 ✅✅✅ */
+/* 더 강력한 Flexbox 방식을 사용하여 가운데 정렬을 강제합니다. */
+[data-testid="stMetricLabel"] {
+    display: flex;
+    justify-content: center;
 }
 
 </style>
