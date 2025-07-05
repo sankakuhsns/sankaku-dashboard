@@ -69,6 +69,13 @@ html, body, [data-testid="stApp"] { background-color: #f0f0f0 !important; }
 div[data-testid="stMultiSelect"] div[data-baseweb="tag"] { background-color: #e0e0e0 !important; border-color: #b0b0b0 !important; color: #333333 !important; }
 .center-login { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .info-box { background-color: #f0f2f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid #e6e6e6; }
+
+/* ✅ 이 부분을 추가하여 KPI 소제목을 가운데 정렬합니다 */
+[data-testid="stMetricLabel"] > div {
+   width: 100%;
+   text-align: center;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
