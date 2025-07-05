@@ -401,7 +401,7 @@ else:
 # --- 5. 사이드바 UI ---
 with st.sidebar:
     st.title('📊 대시보드')
-    st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
+    st.info(f"**로그인 계정 :**\n\n{st.session_state.user_name}")
     st.markdown("---")
     
     지점목록 = sorted(df['지점명'].unique())
@@ -457,7 +457,7 @@ else:
 
 st.markdown(f"""
 <div style='text-align: center; margin-bottom: 1rem; padding: 3rem 2rem; border-radius: 12px; background-color: #ffffff; border: 1px solid #cccccc; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
-    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 DATA 통합 분석 시스템</span>
+    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 분석 시스템</span>
 </div>
 """, unsafe_allow_html=True)
 
