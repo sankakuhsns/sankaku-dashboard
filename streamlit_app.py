@@ -1237,7 +1237,7 @@ else:
     )
 
 ####################################################################################################
-# 📊 시뮬레이션 분석 섹션 (UI 정렬 최종안)
+# 📊 시뮬레이션 분석 섹션 (홀매출, 배달+포장매출 분리 로직 적용)
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1251,7 +1251,7 @@ if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns 
    not df_expense_analysis['총매출'].empty and df_expense_analysis['총매출'].sum() > 0:
     num_months = len(선택_월)
     num_stores = df_expense_analysis['지점명'].nunique()
-    
+
     divisor_months = num_months if num_months > 0 else 1
     divisor_stores = num_stores if num_stores > 0 else 1
 
@@ -1260,15 +1260,14 @@ if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns 
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
-    
-    if '홀_포장_매출_총액' in df_expense_analysis.columns and df_expense_analysis['총매출'].sum() > 0:
-        base_dine_in_ratio = (df_expense_analysis['홀_포장_매출_총액'].sum() / df_expense_analysis['총매출'].sum() * 100)
-    else:
-        base_dine_in_ratio = 0.0
-    
-    if pd.isna(base_dine_in_ratio) or base_dine_in_ratio == float('inf') or base_dine_in_ratio == -float('inf'):
-        base_dine_in_ratio = 0.0
 
+    # 변경된 비율 계산 (홀매출, 배달+포장매출)
+    base_hall_revenue = df_expense_analysis['홀매출'].sum() / divisor_months / divisor_stores
+    base_delivery_revenue = df_expense_analysis['배달매출'].sum() / divisor_months / divisor_stores
+    base_takeout_revenue = df_expense_analysis['포장매출'].sum() / divisor_months / divisor_stores
+
+    base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
+    base_delivery_ratio = ((base_delivery_revenue + base_takeout_revenue) / base_total_revenue * 100) if base_total_revenue > 0 else 0
 else:
     st.warning("시뮬레이션을 위해 사이드바에서 1개 이상의 '월'과 '지점'을 선택하고, 충분한 매출 데이터가 로드되었는지 확인해주세요. (시뮬레이션 섹션)")
     st.stop()
@@ -1285,7 +1284,6 @@ st.markdown("---")
 # --- 2. 시뮬레이션 조건 설정 UI ---
 st.subheader("⚙️ 시뮬레이션 조건 설정")
 
-# ✅ 정보 박스 스타일 정의
 st.markdown("""
 <style>
 .info-box {
@@ -1301,8 +1299,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ✅ 위젯과 정보 박스 행 분리로 높이 정렬 문제 해결
-# 행 1: 입력 위젯
 col1, col2 = st.columns(2)
 with col1:
     sim_revenue = st.number_input(
@@ -1313,31 +1309,33 @@ with col1:
         format="%.0f",
         help=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원"
     )
-
 with col2:
-    sim_dine_in_ratio_pct = st.slider(
+    sim_hall_ratio_pct = st.slider(
         "예상 홀매출 비율 (%)",
         min_value=0.0,
         max_value=100.0,
-        value=base_dine_in_ratio,
+        value=base_hall_ratio,
         step=0.1,
         format="%.1f",
-        help=f"현재 홀매출 비율: {base_dine_in_ratio:.1f}%"
+        help=f"현재 홀매출 비율: {base_hall_ratio:.1f}%"
     )
 
-# 행 2: 정보 표시 박스
+sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
+
 info_col1, info_col2 = st.columns(2)
 with info_col1:
-    st.markdown(f"<div class='info-box'>입력값: {sim_revenue:,.0f} 원</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='info-box'>홀매출 비율: {sim_hall_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
 with info_col2:
-    st.markdown(f"<div class='info-box'>배달 비율: {100 - sim_dine_in_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='info-box'>배달+포장 비율: {sim_delivery_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-base_delivery_revenue = base_total_revenue * (100 - base_dine_in_ratio) / 100
+base_delivery_total = base_delivery_revenue + base_takeout_revenue
+sim_hall_revenue = sim_revenue * (sim_hall_ratio_pct / 100)
+sim_delivery_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
+
 live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 1
-live_sim_delivery_revenue = sim_revenue * (100 - sim_dine_in_ratio_pct) / 100
-live_delivery_revenue_growth = live_sim_delivery_revenue / base_delivery_revenue if base_delivery_revenue > 0 else 1
+live_delivery_revenue_growth = sim_delivery_revenue / base_delivery_total if base_delivery_total > 0 else 1
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
