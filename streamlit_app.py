@@ -256,15 +256,12 @@ def extract_sinseongmeat(df, 지점명):
     out = []
     for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         if str(df.iloc[i, 1]).strip() != '매출': continue
-        try:
-            날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
+        try: 날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
         except (ValueError, TypeError): continue
-        항목2 = str(df.iloc[i, 2]).strip()
-        금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
+        항목2, 금액 = str(df.iloc[i, 2]).strip(), pd.to_numeric(df.iloc[i, 8], errors='coerce')
         if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
-
 
 def extract_ourhome(df, 지점명):
     out, current_date = [], None
