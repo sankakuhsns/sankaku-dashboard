@@ -184,7 +184,7 @@ def load_all_data_from_drive():
 
 def get_data():
     if 'df_all_branches' not in st.session_state or st.session_state.df_all_branches is None:
-        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='🎉')
+        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='�')
         loading_message = "모든 지점의 데이터를 로딩 중입니다..."
         if "all" not in st.session_state.get("allowed_branches", []):
             loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
@@ -828,7 +828,7 @@ if not df_expense_analysis.empty:
                     fig_bar_base = px.bar(df_base_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_base.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_base.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
+                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_3")
         with row2_col2:
             display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
             r2_c2_sub1, r2_c2_sub2 = st.columns(2)
@@ -847,6 +847,6 @@ if not df_expense_analysis.empty:
                     fig_bar_sim = px.bar(df_sim_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_sim.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_sim.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
+                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_3")
 else:
     st.warning("분석을 위한 데이터가 부족하여 시뮬레이션을 실행할 수 없습니다.")
