@@ -1231,40 +1231,27 @@ col1, col2 = st.columns(2)
 with col1:
     sim_revenue = st.number_input(
         "예상 월평균 매출 (원)",
-        min_value=0.0,
-        value=base_total_revenue,
-        step=100000.0,
-        format="%.0f",
+        min_value=0.0, value=base_total_revenue, step=100000.0, format="%.0f",
         help=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원"
     )
-
 with col2:
     sim_hall_ratio_pct = st.slider(
         "예상 홀매출 비율 (%)",
-        min_value=0.0,
-        max_value=100.0,
-        value=base_hall_ratio,
-        step=0.1,
-        format="%.1f",
+        min_value=0.0, max_value=100.0, value=base_hall_ratio, step=0.1, format="%.1f",
         help=f"현재 홀매출 비율: {base_hall_ratio:.1f}%"
     )
 
 sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
-
 info_col1, info_col2 = st.columns(2)
 with info_col1:
     st.markdown(f"<div class='info-box'>홀매출 비율: {sim_hall_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
 with info_col2:
     st.markdown(f"<div class='info-box'>배달+포장 비율: {sim_delivery_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
-
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 시뮬레이션 매출액 및 성장률 계산
-sim_hall_revenue = sim_revenue * (sim_hall_ratio_pct / 100)
-sim_delivery_takeout_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
-
+# 실시간 성장률 계산
 live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 0
-live_delivery_takeout_revenue_growth = sim_delivery_takeout_revenue / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
+live_delivery_takeout_revenue_growth = (sim_revenue * (sim_delivery_ratio_pct / 100)) / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
@@ -1276,7 +1263,22 @@ with st.expander("항목별 비용 상세 조정 (선택)"):
             with cost_cols[col_idx % 3]:
                 slider_value = st.slider(f"{item} 조정률 (%)", -50.0, 50.0, 0.0, 0.1, "%.1f", help=f"현재 월평균 {item} 비용: {base_costs.get(item, 0):,.0f} 원", key=f"slider_{item}")
                 cost_adjustments[item] = slider_value
-
+                
+                # ✅ 수정: 변동액 표시 로직 복원 및 개선
+                base_cost_item = base_costs.get(item, 0)
+                growth_factor = 1.0
+                if item in VARIABLE_COST_ITEMS:
+                    growth_factor = live_total_revenue_growth
+                elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
+                    growth_factor = live_delivery_takeout_revenue_growth
+                
+                final_sim_cost = base_cost_item * growth_factor * (1 + slider_value / 100)
+                adjustment_amount = final_sim_cost - base_cost_item
+                sign = "+" if adjustment_amount >= 0 else ""
+                color = "#3D9970" if adjustment_amount >= 0 else "#FF4136"
+                st.markdown(f"<p style='color:{color}; text-align:right; font-weight:bold;'>변동액: {sign}{adjustment_amount:,.0f} 원</p>", unsafe_allow_html=True)
+            col_idx += 1
+            
 st.markdown("---")
 royalty_rate = st.slider("👑 로열티 설정 (매출 대비 %)", 0.0, 10.0, 0.0, 0.1, "%.1f%%")
 st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
@@ -1286,23 +1288,18 @@ st.markdown("""<style>div[data-testid="stButton"] > button { height: 60px; paddi
 
 if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     sim_costs = {}
-    cost_adjustment_defaults = locals().get('cost_adjustments', {})
     
-    # 변동비 (식자재, 소모품 등)는 전체 매출 성장에 따라 변동
-    for item in VARIABLE_COST_ITEMS:
-        if item in base_costs:
-            sim_costs[item] = base_costs[item] * live_total_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
-    
-    # 배달 관련 변동비 (배달비)는 배달+포장 매출 성장에 따라 변동
-    for item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
-        if item in base_costs:
-            sim_costs[item] = base_costs[item] * live_delivery_takeout_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
-    
-    # 고정비는 기본적으로는 불변, 슬라이더 조정만 반영
-    for item in FIXED_COST_ITEMS:
-        if item in base_costs:
-            sim_costs[item] = base_costs[item] * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+    # ✅ 수정: 시뮬레이션 비용 계산 로직 전체 수정
+    for item, base_cost in base_costs.items():
+        adjustment = cost_adjustments.get(item, 0) / 100
+        growth_factor = 1.0
+        if item in VARIABLE_COST_ITEMS:
+            growth_factor = live_total_revenue_growth
+        elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
+            growth_factor = live_delivery_takeout_revenue_growth
             
+        sim_costs[item] = base_cost * growth_factor * (1 + adjustment)
+
     sim_costs['로열티'] = sim_revenue * (royalty_rate / 100)
     sim_total_cost = sum(sim_costs.values())
     sim_profit = sim_revenue - sim_total_cost
