@@ -709,27 +709,38 @@ else:
     st.dataframe(top_20_식자재[['순위', '식자재 품목 (세부)', '총 금액', '비중 (%)']].style.format({"총 금액": "{:,.0f}원", "비중 (%)": "{:.2f}%"}).set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
 
 ####################################################################################################
-# 📊 시뮬레이션 분석 섹션
+# 📊 시뮬레이션 분석 섹션 (수정된 코드)
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("📊 시뮬레이션 분석 📊", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
 if not df_expense_analysis.empty:
+    # --- UI 너비 조정을 위한 CSS 주입 ---
+    # st.number_input 너비를 1.5배로 늘리고 중앙 정렬을 위해 margin 조정
+    st.markdown("""
+        <style>
+        div[data-testid="stNumberInput"] {
+            width: 150%;
+            margin-left: -25%; /* 너비 증가분의 절반만큼 왼쪽으로 이동하여 중앙 정렬 효과 */
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     num_months = len(선택_월)
     num_stores = df_expense_analysis['지점명'].nunique()
     divisor = num_months * num_stores if num_months * num_stores > 0 else 1
-    
+
     base_total_revenue = df_expense_analysis['총매출'].sum() / divisor
     base_costs = {item: df_expense_analysis[item].sum() / divisor for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_expense_analysis.columns}
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
-    
+
     base_hall_revenue = df_expense_analysis.get('홀매출_총액', 0).sum() / divisor
     base_delivery_takeout_revenue = df_expense_analysis.get('배달매출_총액', 0).sum() / divisor
     base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
-    
+
     st.subheader("📋 현재 상태 요약 (지점당 월평균)")
     summary_cols = st.columns(4)
     summary_cols[0].metric("평균 총매출", f"{base_total_revenue:,.0f} 원")
@@ -738,13 +749,33 @@ if not df_expense_analysis.empty:
     summary_cols[3].metric("평균 순수익률", f"{base_profit_margin:.1f}%")
     st.markdown("---")
     st.subheader("⚙️ 시뮬레이션 조건 설정")
-    
+
     sim_rev_col, sim_hall_col = st.columns(2)
     with sim_rev_col:
-        sim_revenue = custom_slider(label="예상 월평균 매출 (원)", min_value=0.0, max_value=base_total_revenue * 3, default_value=base_total_revenue, step=100000.0, help_text=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원", key="sim_revenue", format_str="%.0f")
+        # custom_slider를 st.number_input으로 변경하고, 최대값 및 서식 지정
+        sim_revenue = st.number_input(
+            label="예상 월평균 매출 (원)",
+            min_value=0.0,
+            max_value=150_000_000.0,  # 최대값 1억 5천만으로 설정
+            value=base_total_revenue,
+            step=100000.0,
+            help=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원",
+            key="sim_revenue",
+            format="%.0f" # 입력 필드 내 서식
+        )
     with sim_hall_col:
-        sim_hall_ratio_pct = custom_slider(label="예상 홀매출 비율 (%)", min_value=0.0, max_value=100.0, default_value=base_hall_ratio, step=0.1, help_text=f"현재 홀매출 비율: {base_hall_ratio:.1f}%", key="sim_hall_ratio")
-    
+        # custom_slider를 st.number_input으로 변경
+        sim_hall_ratio_pct = st.number_input(
+            label="예상 홀매출 비율 (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=base_hall_ratio,
+            step=0.1,
+            help=f"현재 홀매출 비율: {base_hall_ratio:.1f}%",
+            key="sim_hall_ratio",
+            format="%.1f"
+        )
+
     sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
 
     live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 0
@@ -758,7 +789,17 @@ if not df_expense_analysis.empty:
             item1 = ordered_cost_items[i]
             if item1 in base_costs:
                 with col1:
-                    cost_adjustments[item1] = custom_slider(label=f"{item1} 조정률 (%)", min_value=-50.0, max_value=50.0, default_value=0.0, step=0.1, help_text=f"현재 월평균 {item1} 비용: {base_costs.get(item1, 0):,.0f} 원", key=f"slider_{item1}")
+                    # custom_slider를 st.number_input으로 변경
+                    cost_adjustments[item1] = st.number_input(
+                        label=f"{item1} 조정률 (%)",
+                        min_value=-50.0,
+                        max_value=50.0,
+                        value=0.0,
+                        step=0.1,
+                        help=f"현재 월평균 {item1} 비용: {base_costs.get(item1, 0):,.0f} 원",
+                        key=f"slider_{item1}",
+                        format="%.1f"
+                    )
                     base_cost_item = base_costs.get(item1, 0)
                     growth_factor = live_total_revenue_growth if item1 in VARIABLE_COST_ITEMS else live_delivery_takeout_revenue_growth if item1 in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS else 1.0
                     final_sim_cost = base_cost_item * growth_factor * (1 + cost_adjustments[item1] / 100)
@@ -770,7 +811,17 @@ if not df_expense_analysis.empty:
                 item2 = ordered_cost_items[i+1]
                 if item2 in base_costs:
                     with col2:
-                        cost_adjustments[item2] = custom_slider(label=f"{item2} 조정률 (%)", min_value=-50.0, max_value=50.0, default_value=0.0, step=0.1, help_text=f"현재 월평균 {item2} 비용: {base_costs.get(item2, 0):,.0f} 원", key=f"slider_{item2}")
+                        # custom_slider를 st.number_input으로 변경
+                        cost_adjustments[item2] = st.number_input(
+                            label=f"{item2} 조정률 (%)",
+                            min_value=-50.0,
+                            max_value=50.0,
+                            value=0.0,
+                            step=0.1,
+                            help=f"현재 월평균 {item2} 비용: {base_costs.get(item2, 0):,.0f} 원",
+                            key=f"slider_{item2}",
+                            format="%.1f"
+                        )
                         base_cost_item = base_costs.get(item2, 0)
                         growth_factor = live_total_revenue_growth if item2 in VARIABLE_COST_ITEMS else live_delivery_takeout_revenue_growth if item2 in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS else 1.0
                         final_sim_cost = base_cost_item * growth_factor * (1 + cost_adjustments[item2] / 100)
@@ -778,9 +829,19 @@ if not df_expense_analysis.empty:
                         sign = "+" if adjustment_amount >= 0 else ""
                         color = "#3D9970" if adjustment_amount >= 0 else "#FF4136"
                         st.markdown(f"<p style='color:{color}; text-align:right; font-size: 0.9rem;'>변동액: {sign}{adjustment_amount:,.0f} 원</p>", unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    royalty_rate = custom_slider(label="👑 로열티 설정 (매출 대비 %)", min_value=0.0, max_value=10.0, default_value=0.0, step=0.1, help_text="전체 예상 매출액 대비 로열티 비율을 설정합니다.", key="royalty_rate")
+    # 로열티 설정 부분도 st.number_input으로 변경
+    royalty_rate = st.number_input(
+        label="👑 로열티 설정 (매출 대비 %)",
+        min_value=0.0,
+        max_value=10.0,
+        value=0.0,
+        step=0.1,
+        help="전체 예상 매출액 대비 로열티 비율을 설정합니다.",
+        key="royalty_rate",
+        format="%.1f"
+    )
     st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
     st.markdown("<br>", unsafe_allow_html=True)
 
