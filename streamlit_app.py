@@ -255,30 +255,28 @@ def extract_doori(df, 지점명):
     return out
 
 def extract_sinseongmeat(df, 지점명):
-    """(수정) '신성미트' 파일에서 식자재 데이터를 추출합니다."""
+    """(수정) 신성미트 파일에서 A열이 유효한 날짜인 행만 추출합니다."""
     out = []
-    try:
-        date_col, type_col, item_col = '거래일자', '구분', '품목명'
-        amount_col = df.columns[8]  # I열
-        required_cols = [date_col, type_col, item_col]
-        if not all(col in df.columns for col in required_cols):
-            return []
-    except IndexError:
-        return []
-
-    df_filtered = df[df[type_col].astype(str).str.strip() == '매출'].copy()
-
-    for _, row in df_filtered.iterrows():
+    # 데이터는 4행부터 시작 (인덱스 3)
+    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         try:
-            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
-            continue
-        
-        항목2 = str(row[item_col]).strip()
-        금액 = pd.to_numeric(row[amount_col], errors='coerce')
+            # ✅ 수정: A열(인덱스 0)의 날짜 파싱을 필터링 조건으로 사용
+            날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
+            
+            # 날짜 파싱에 성공하면 나머지 데이터 추출 시도
+            항목2 = str(df.iloc[i, 2]).strip()
+            금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
 
-        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
-            out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
+            if pd.notna(금액) and 금액 > 0 and 항목2:
+                # 요약 행 키워드를 포함하지 않는 경우에만 추가
+                if not any(keyword in 항목2 for keyword in ['[일 계]', '[월계]', '합계', '이월금액']):
+                    out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
+
+        except (ValueError, TypeError, IndexError):
+            # 날짜 변환에 실패하거나(숫자가 아니거나), 다른 열(C, I)에 데이터가 없으면
+            # 해당 행은 데이터 행이 아니므로 건너뜁니다.
+            continue
+            
     return out
 
 def extract_ourhome(df, 지점명):
