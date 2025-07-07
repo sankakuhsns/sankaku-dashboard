@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_HEADER_ROW = 2  # 엑셀의 3번째 행(인덱스 2)을 헤더로 사용
+SINSEONG_DATA_START_ROW = 3 # 엑셀 4행부터 시작 (0-based index)
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -160,7 +160,7 @@ def load_all_data_from_drive():
                     processed_rows['두리축산'] += (len(all_rows) - rows_before)
                 elif "신성미트" in file_path:
                     file_counts['신성미트'] += 1
-                    # ✅ 수정: 신성미트 파일은 3행을 헤더로 사용
+                    # ✅ 수정: 신성미트 파일은 3행을 헤더로 사용하도록 수정
                     df_sheet = pd.read_excel(fh, header=SINSEONG_HEADER_ROW, engine=engine_to_use)
                     all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
                     processed_rows['신성미트'] += (len(all_rows) - rows_before)
@@ -254,47 +254,32 @@ def extract_doori(df, 지점명):
     return out
 
 def extract_sinseongmeat(df, 지점명):
-    """
-    (수정) '신성미트' 파일에서 식자재 데이터를 추출합니다.
-    - 3행을 헤더로 읽은 후, '구분' 열이 '매출'인 행만 필터링합니다.
-    - '거래일자', '품목명', 그리고 9번째 열(매출공급가)의 데이터를 추출합니다.
-    """
     out = []
-    
-    # 헤더로 읽힌 컬럼 이름들을 확인 (파일마다 조금씩 다를 수 있음을 대비)
     try:
-        # 지시사항에 따른 컬럼명 (A열, B열, C열)
-        date_col_name = '거래일자'
-        type_col_name = '구분'
-        item_col_name = '품목명'
-        amount_col_name = df.columns[8] # 9번째 열 (I열)
+        # ✅ 수정: 헤더 이름으로 컬럼에 접근
+        date_col, type_col, item_col = '거래일자', '구분', '품목명'
+        amount_col = df.columns[8]  # I열
         
-        # 파일에 해당 컬럼들이 있는지 다시 한번 확인
-        required_cols = [date_col_name, type_col_name, item_col_name, amount_col_name]
+        required_cols = [date_col, type_col, item_col]
         if not all(col in df.columns for col in required_cols):
-            # st.warning(f"신성미트 파일({지점명})에 필요한 컬럼({required_cols})이 없습니다.")
             return []
     except IndexError:
-        # st.warning(f"신성미트 파일({지점명})의 열 개수가 부족합니다.")
         return []
 
-    # '구분' 열의 값이 '매출'인 행만 필터링
-    df_filtered = df[df[type_col_name].astype(str).str.strip() == '매출'].copy()
+    df_filtered = df[df[type_col].astype(str).str.strip() == '매출'].copy()
 
     for _, row in df_filtered.iterrows():
         try:
-            날짜 = pd.to_datetime(row[date_col_name]).strftime('%Y-%m-%d')
+            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
         except (ValueError, TypeError):
             continue
-
-        항목2 = str(row[item_col_name]).strip()
-        금액 = pd.to_numeric(row[amount_col_name], errors='coerce')
+        
+        항목2 = str(row[item_col]).strip()
+        금액 = pd.to_numeric(row[amount_col], errors='coerce')
 
         if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
-            
     return out
-
 
 def extract_ourhome(df, 지점명):
     out, current_date = [], None
@@ -448,6 +433,9 @@ col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
 col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
+
+# 이하 모든 분석 및 차트 코드는 생략하지 않고 전체를 포함합니다.
+# ... (매출 분석, 지출 분석, 순수익 분석, 식자재 분석, 시뮬레이션 분석 코드 전체)
 
 #######################
 # 📈 매출 분석 섹션
