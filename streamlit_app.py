@@ -157,9 +157,9 @@ def load_all_data_from_drive():
                     df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
                     all_rows.extend(extract_doori(df_sheet, 지점명))
                     processed_rows['두리축산'] += (len(all_rows) - rows_before)
-                 elif "신성미트" in file_path:
+                elif "신성미트" in file_path:
                     file_counts['신성미트'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    df_sheet = pd.read_excel(fh, header=SINSEONG_HEADER_ROW, engine=engine_to_use)
                     all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
                     processed_rows['신성미트'] += (len(all_rows) - rows_before)
                 elif "아워홈" in file_path:
@@ -177,9 +177,7 @@ def load_all_data_from_drive():
         df_통합.dropna(subset=['금액', '날짜'], inplace=True)
         df_통합['날짜'] = pd.to_datetime(df_통합['날짜'], errors='coerce')
         df_통합.dropna(subset=['날짜'], inplace=True)
-        df_통합 = df_통합[df_통합['금액'] > 0].copy()
-        
-        return df_통합, file_counts, processed_rows
+        return df_통합[df_통합['금액'] > 0].copy(), file_counts, processed_rows
     except Exception as e:
         st.error(f"Google Drive 데이터 로딩 중 심각한 오류가 발생했습니다: {e}")
         return pd.DataFrame(), {}, {}
@@ -192,9 +190,7 @@ def get_data():
             loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
         with st.spinner(loading_message):
             df_all, counts, rows = load_all_data_from_drive()
-            st.session_state.df_all_branches = df_all
-            st.session_state.file_counts = counts
-            st.session_state.processed_rows = rows
+            st.session_state.df_all_branches, st.session_state.file_counts, st.session_state.processed_rows = df_all, counts, rows
         st.rerun()
     return st.session_state.df_all_branches, st.session_state.file_counts, st.session_state.processed_rows
 
@@ -253,14 +249,22 @@ def extract_doori(df, 지점명):
 
 def extract_sinseongmeat(df, 지점명):
     out = []
-    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
-        if str(df.iloc[i, 1]).strip() != '매출': continue
+    try:
+        date_col, type_col, item_col = '거래일자', '구분', '품목명'
+        amount_col = df.columns[8]
+        required_cols = [date_col, type_col, item_col]
+        if not all(col in df.columns for col in required_cols):
+            return []
+    except IndexError:
+        return []
+    df_filtered = df[df[type_col].astype(str).str.strip() == '매출'].copy()
+    for _, row in df_filtered.iterrows():
         try:
-            날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError): continue
-        항목2 = str(df.iloc[i, 2]).strip()
-        금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
-        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계']):
+            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
+            continue
+        항목2, 금액 = str(row[item_col]).strip(), pd.to_numeric(row[amount_col], errors='coerce')
+        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
 
