@@ -43,18 +43,28 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-    # ✅ CSS 삽입으로 메뉴 숨기기
     st.markdown("""
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        /* Streamlit Cloud의 특수한 하단 요소도 강제 숨김 */
-        .st-emotion-cache-zq5wmm.ezrtsby0 {display: none;}  /* 최신 버전의 왕관 div */
-        .st-emotion-cache-1v0mbdj {display: none;}          /* 예전 버전 Streamlit 로고 div */
-        .st-emotion-cache-13ln4jf {display: none;}          /* 테마 선택 도구 */
-        </style>
-    """, unsafe_allow_html=True)
+    <style>
+    /* 기본 UI 숨김 */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Streamlit Cloud 하단 왕관 숨김 강제 적용 */
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+
+    /* 추가: 감춰지지 않는 이상한 하단 박스들까지도 제거 */
+    .st-emotion-cache-zq5wmm, .st-emotion-cache-1v0mbdj,
+    .st-emotion-cache-13ln4jf, .st-emotion-cache-1avcm0n {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
     
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
