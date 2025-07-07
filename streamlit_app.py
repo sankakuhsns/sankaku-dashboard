@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_DATA_START_ROW = 3  # 데이터 시작 행 (0-based index)
+SINSEONG_DATA_START_ROW = 3
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -252,18 +252,12 @@ def extract_sinseongmeat(df, 지점명):
     for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         try:
             date_cell = df.iloc[i, 0]
-            type_cell = df.iloc[i, 1]
-            item_cell = df.iloc[i, 2]
-            amount_cell = df.iloc[i, 8]
-            
-            # A열에 날짜 형식이 아니거나, '계'가 포함된 경우 건너뛰기
-            if pd.isna(pd.to_datetime(date_cell, errors='coerce')) or ('계' in str(date_cell)):
+            if pd.isna(date_cell) or '계' in str(date_cell):
                 continue
             
             날짜 = pd.to_datetime(date_cell).strftime('%Y-%m-%d')
-            
-            항목2 = str(item_cell).strip()
-            금액 = pd.to_numeric(amount_cell, errors='coerce')
+            항목2 = str(df.iloc[i, 2]).strip()
+            금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
 
             if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
                 out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
