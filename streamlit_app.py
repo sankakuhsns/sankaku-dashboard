@@ -669,7 +669,6 @@ with col_chart5:
         )
         st.plotly_chart(pie3, use_container_width=True)
 
-
 ####################################################################################################
 # 💸 지출 분석 섹션
 ####################################################################################################
@@ -677,38 +676,38 @@ st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box(
     "💸 지출 분석 💸",
-   background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px"
+    background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px"
 )
 
 # --- 분석용 데이터프레임 생성 ---
 if not 매출.empty:
     총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
-    배달매출_월별_지점별 = 매출[매출['항목1'] == '배달매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
-    홀_포장_매출_월별_지점별 = 매출[매출['항목1'].isin(['홀매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀_포장_매출_총액'})
     
-    # 지출_항목1별_월별_지점별_raw 가 비어있을 경우를 대비하여 초기화
+    # ✅ 수정: '배달매출'과 '포장매출'을 함께 집계
+    배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
+    
+    # ✅ 수정: '홀매출'만 집계하도록 변경
+    홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
+    
     지출_항목1별_월별_지점별_raw = pd.DataFrame(columns=['지점명', '월'] + all_possible_expense_categories_for_analysis)
     if not 지출.empty:
         try:
             지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
-            # Unstack 후 모든 all_possible_expense_categories_for_analysis 항목이 있는지 확인 및 추가 (없으면 0)
             for col in all_possible_expense_categories_for_analysis:
                 if col not in 지출_항목1별_월별_지점별_raw.columns:
                     지출_항목1별_월별_지점별_raw[col] = 0
         except Exception as e:
             st.warning(f"DEBUG: 지출 피벗 테이블 생성 중 오류 발생: {e}")
-            지출_항목1별_월별_지점별_raw = pd.DataFrame(columns=['지점명', '월'] + all_possible_expense_categories_for_analysis)
-
 
     cols_to_reindex_지출_pivot = ['지점명', '월'] + [item for item in all_possible_expense_categories_for_analysis if item not in ['지점명', '월']]
     지출_항목1별_월별_지점별 = 지출_항목1별_월별_지점별_raw.reindex(columns=cols_to_reindex_지출_pivot, fill_value=0)
     
     df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
-    df_expense_analysis = pd.merge(df_expense_analysis, 홀_포장_매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
+    # ✅ 수정: merge 대상을 '홀매출_총액'으로 변경
+    df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
 else:
     df_expense_analysis = pd.DataFrame()
-    st.warning("DEBUG: '매출' 데이터가 비어 있어 'df_expense_analysis'를 생성할 수 없습니다.")
 
 
 # --- 1줄 홀매출 지출항목 비율(원형차트), 홀매출 지출항목 월별지출 선그래프 ---
@@ -1237,7 +1236,7 @@ else:
     )
 
 ####################################################################################################
-# 📊 시뮬레이션 분석 섹션 (홀매출 = 홀매출, 배달매출 = 배달 + 포장 / 기존 로직 최소 수정)
+# 📊 시뮬레이션 분석 섹션
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1247,58 +1246,39 @@ display_styled_title_box(
 )
 
 # --- 0. 시뮬레이션 기반 데이터 준비 ---
-def safe_sum(df, col):
-    return df[col].sum() if col in df.columns else 0
-
-if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns and \
-   not df_expense_analysis['총매출'].empty and df_expense_analysis['총매출'].sum() > 0:
+if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns and df_expense_analysis['총매출'].sum() > 0:
     num_months = len(선택_월)
     num_stores = df_expense_analysis['지점명'].nunique()
-
+    
     divisor_months = num_months if num_months > 0 else 1
     divisor_stores = num_stores if num_stores > 0 else 1
 
     base_total_revenue = df_expense_analysis['총매출'].sum() / divisor_months / divisor_stores
-    base_costs = {item: safe_sum(df_expense_analysis, item) / divisor_months / divisor_stores for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
+    base_costs = {item: df_expense_analysis[item].sum() / divisor_months / divisor_stores for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
-
-    # ✅ 포장매출을 배달매출에 포함하고, 홀매출에서는 제외
-    base_hall_revenue = safe_sum(df_expense_analysis, '홀매출') / divisor_months / divisor_stores
-    base_delivery_revenue = (safe_sum(df_expense_analysis, '배달매출') + safe_sum(df_expense_analysis, '포장매출')) / divisor_months / divisor_stores
-
-    base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
+    
+    # ✅ 수정: 홀매출 비율 계산 기준을 '홀매출_총액'으로 변경
+    if '홀매출_총액' in df_expense_analysis.columns and base_total_revenue > 0:
+        base_hall_ratio = ( (df_expense_analysis['홀매출_총액'].sum() / divisor_months / divisor_stores) / base_total_revenue * 100)
+    else:
+        base_hall_ratio = 0.0
 else:
-    st.warning("시뮬레이션을 위해 사이드바에서 1개 이상의 '월'과 '지점'을 선택하고, 충분한 매출 데이터가 로드되었는지 확인해주세요. (시뮬레이션 섹션)")
+    st.warning("시뮬레이션을 위해 사이드바에서 1개 이상의 '월'과 '지점'을 선택하고, 충분한 매출 데이터가 로드되었는지 확인해주세요.")
     st.stop()
 
 # --- 1. 현재 상태 요약 ---
 st.subheader("📋 현재 상태 요약 (지점당 월평균)")
 summary_cols = st.columns(4)
-summary_cols[0].metric(" 평균 총매출", f"{base_total_revenue:,.0f} 원")
-summary_cols[1].metric(" 평균 총비용", f"{base_total_cost:,.0f} 원")
-summary_cols[2].metric(" 평균 순수익", f"{base_profit:,.0f} 원")
-summary_cols[3].metric(" 평균 순수익률", f"{base_profit_margin:.1f}%")
+summary_cols[0].metric("평균 총매출", f"{base_total_revenue:,.0f} 원")
+summary_cols[1].metric("평균 총비용", f"{base_total_cost:,.0f} 원")
+summary_cols[2].metric("평균 순수익", f"{base_profit:,.0f} 원")
+summary_cols[3].metric("평균 순수익률", f"{base_profit_margin:.1f}%")
 st.markdown("---")
 
 # --- 2. 시뮬레이션 조건 설정 UI ---
 st.subheader("⚙️ 시뮬레이션 조건 설정")
-
-st.markdown("""
-<style>
-.info-box {
-    background-color: #f0f2f6;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    border: 1px solid #e6e6e6;
-}
-</style>
-""", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -1310,6 +1290,7 @@ with col1:
         format="%.0f",
         help=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원"
     )
+
 with col2:
     sim_hall_ratio_pct = st.slider(
         "예상 홀매출 비율 (%)",
@@ -1331,13 +1312,15 @@ with info_col2:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# 시뮬레이션 매출액 및 성장률 계산
+base_hall_revenue = (df_expense_analysis['홀매출_총액'].sum() / divisor_months / divisor_stores) if '홀매출_총액' in df_expense_analysis else 0
+base_delivery_takeout_revenue = (df_expense_analysis['배달매출_총액'].sum() / divisor_months / divisor_stores) if '배달매출_총액' in df_expense_analysis else 0
+
 sim_hall_revenue = sim_revenue * (sim_hall_ratio_pct / 100)
-sim_delivery_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
+sim_delivery_takeout_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
 
-live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 1
-live_delivery_revenue_growth = sim_delivery_revenue / base_delivery_revenue if base_delivery_revenue > 0 else 1
-
-# 이후 cost_adjustments, 시뮬레이션 실행, 결과 시각화는 기존 로직 유지 (비율 반영 방식만 위에서 조정됨)
+live_hall_revenue_growth = sim_hall_revenue / base_hall_revenue if base_hall_revenue > 0 else 0
+live_delivery_takeout_revenue_growth = sim_delivery_takeout_revenue / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
@@ -1350,20 +1333,6 @@ with st.expander("항목별 비용 상세 조정 (선택)"):
                 slider_value = st.slider(f"{item} 조정률 (%)", -50.0, 50.0, 0.0, 0.1, "%.1f", help=f"현재 월평균 {item} 비용: {base_costs.get(item, 0):,.0f} 원", key=f"slider_{item}")
                 cost_adjustments[item] = slider_value
 
-                base_cost_item = base_costs.get(item, 0)
-                growth_factor = 1.0
-                if item in VARIABLE_COST_ITEMS:
-                    growth_factor = live_total_revenue_growth
-                elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
-                    growth_factor = live_delivery_revenue_growth
-                
-                final_sim_cost = base_cost_item * growth_factor * (1 + slider_value / 100)
-                adjustment_amount = final_sim_cost - base_cost_item
-
-                sign = "+" if adjustment_amount >= 0 else ""
-                color = "#3D9970" if adjustment_amount >= 0 else "#FF4136"
-                st.markdown(f"<p style='color:{color}; text-align:right; font-weight:bold;'>변동액: {sign}{adjustment_amount:,.0f} 원</p>", unsafe_allow_html=True)
-            col_idx += 1
 st.markdown("---")
 royalty_rate = st.slider("👑 로열티 설정 (매출 대비 %)", 0.0, 10.0, 0.0, 0.1, "%.1f%%")
 st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
