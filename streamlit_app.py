@@ -15,17 +15,12 @@ from google.oauth2 import service_account
 # ==============================================================================
 #      1. 설정 상수 정의
 # ==============================================================================
-# --- Google Drive 설정 ---
 DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
-
-# --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
 SINSEONG_DATA_START_ROW = 3
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
-
-# --- 분석용 카테고리 정의 ---
 VARIABLE_COST_ITEMS = ['식자재', '소모품']
 DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS = ['배달비']
 FIXED_COST_ITEMS = ['인건비', '광고비', '고정비']
@@ -35,14 +30,8 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 #      2. 모든 함수 정의
 # ==============================================================================
 
-# ------------------ UI 헬퍼 함수들 ------------------
 def setup_page():
-    st.set_page_config(
-        page_title="Sankaku Dashboard",
-        page_icon="📊",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+    st.set_page_config(page_title="Sankaku Dashboard", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
     <style>
@@ -64,9 +53,7 @@ def display_styled_title_box(title_text, **kwargs):
     """, unsafe_allow_html=True)
 
 def custom_slider(label, min_value, max_value, default_value, step, help_text, key):
-    if key not in st.session_state:
-        st.session_state[key] = default_value
-    
+    if key not in st.session_state: st.session_state[key] = default_value
     main_col, _, val_col = st.columns([10, 1, 3])
     with main_col:
         new_slider_val = st.slider(label, min_value, max_value, value=st.session_state[key], step=step, help=help_text, key=f"{key}_slider")
@@ -80,8 +67,6 @@ def custom_slider(label, min_value, max_value, default_value, step, help_text, k
             st.session_state[key] = new_num_val
             st.rerun()
     return st.session_state[key]
-
-# ------------------ 로그인 및 데이터 로딩 함수들 ------------------
 
 def authenticate(password):
     users = st.secrets.get("users", [])
@@ -110,80 +95,66 @@ def show_login_screen():
 
 @st.cache_data(ttl=600)
 def load_all_data_from_drive():
-    try:
-        credentials = service_account.Credentials.from_service_account_info(st.secrets["google"], scopes=['https://www.googleapis.com/auth/drive.readonly'])
-        drive_service = build('drive', 'v3', credentials=credentials)
-        all_files = list_files_recursive(drive_service, DRIVE_FOLDER_ID)
-        all_rows = []
-        file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
-        processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
-
-        for file in all_files:
-            file_id, file_name = file['id'], file['name']
-            file_path = file.get('path', file_name)
-            path_parts = [part for part in file_path.split('/') if part]
-            지점명 = path_parts[-2] if len(path_parts) >= 2 else "미분류"
-
-            try:
-                fh = io.BytesIO()
-                request = drive_service.files().get_media(fileId=file_id)
-                downloader = MediaIoBaseDownload(fh, request)
-                done = False
-                while not done: _, done = downloader.next_chunk()
-                fh.seek(0)
-            except HttpError: continue
-
-            engine_to_use = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd' if file_name.lower().endswith('.xls') else None
-            if not engine_to_use:
-                file_counts['기타/미지원'] += 1
-                continue
-
-            try:
-                rows_before = len(all_rows)
-                if "OKPOS" in file_path:
-                    file_counts['OKPOS'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_okpos_table(df_sheet, 지점명))
-                    processed_rows['OKPOS'] += (len(all_rows) - rows_before)
-                elif "정산표" in file_path:
-                    file_counts['정산표'] += 1
-                    xls = pd.ExcelFile(fh, engine=engine_to_use)
-                    for sheet_name in xls.sheet_names:
-                        df_sheet = xls.parse(sheet_name, header=None)
-                        all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
-                        all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
-                    processed_rows['정산표'] += (len(all_rows) - rows_before)
-                elif "두리축산" in file_path:
-                    file_counts['두리축산'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_doori(df_sheet, 지점명))
-                    processed_rows['두리축산'] += (len(all_rows) - rows_before)
-                elif "신성미트" in file_path:
-                    file_counts['신성미트'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
-                    processed_rows['신성미트'] += (len(all_rows) - rows_before)
-                elif "아워홈" in file_path:
-                    file_counts['아워홈'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_ourhome(df_sheet, 지점명))
-                    processed_rows['아워홈'] += (len(all_rows) - rows_before)
-            except Exception as e:
-                st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
-        
-        if not all_rows: return pd.DataFrame(), {}, {}
-        
-        df_통합 = pd.DataFrame(all_rows, columns=['날짜', '지점명', '분류', '항목1', '항목2', '금액'])
-        df_통합['금액'] = pd.to_numeric(df_통합['금액'], errors='coerce')
-        df_통합.dropna(subset=['금액', '날짜'], inplace=True)
-        df_통합['날짜'] = pd.to_datetime(df_통합['날짜'], errors='coerce')
-        df_통합.dropna(subset=['날짜'], inplace=True)
-        df_통합 = df_통합[df_통합['금액'] > 0].copy()
-        
-        return df_통합, file_counts, processed_rows
-    except Exception as e:
-        st.error(f"Google Drive 데이터 로딩 중 심각한 오류가 발생했습니다: {e}")
-        return pd.DataFrame(), {}, {}
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["google"], scopes=['https://www.googleapis.com/auth/drive.readonly'])
+    drive_service = build('drive', 'v3', credentials=credentials)
+    all_files = list_files_recursive(drive_service, DRIVE_FOLDER_ID)
+    all_rows = []
+    file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
+    processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
+    for file in all_files:
+        file_id, file_name, file_path = file['id'], file['name'], file.get('path', file_name)
+        지점명 = file_path.split('/')[-2] if len(file_path.split('/')) >= 2 else "미분류"
+        try:
+            fh = io.BytesIO()
+            request = drive_service.files().get_media(fileId=file_id)
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done: _, done = downloader.next_chunk()
+            fh.seek(0)
+        except HttpError: continue
+        engine_to_use = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd' if file_name.lower().endswith('.xls') else None
+        if not engine_to_use:
+            file_counts['기타/미지원'] += 1
+            continue
+        try:
+            rows_before = len(all_rows)
+            if "OKPOS" in file_path:
+                file_counts['OKPOS'] += 1
+                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                all_rows.extend(extract_okpos_table(df_sheet, 지점명))
+                processed_rows['OKPOS'] += (len(all_rows) - rows_before)
+            elif "정산표" in file_path:
+                file_counts['정산표'] += 1
+                xls = pd.ExcelFile(fh, engine=engine_to_use)
+                for sheet_name in xls.sheet_names:
+                    df_sheet = xls.parse(sheet_name, header=None)
+                    all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
+                    all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
+                processed_rows['정산표'] += (len(all_rows) - rows_before)
+            elif "두리축산" in file_path:
+                file_counts['두리축산'] += 1
+                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                all_rows.extend(extract_doori(df_sheet, 지점명))
+                processed_rows['두리축산'] += (len(all_rows) - rows_before)
+            elif "신성미트" in file_path:
+                file_counts['신성미트'] += 1
+                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
+                processed_rows['신성미트'] += (len(all_rows) - rows_before)
+            elif "아워홈" in file_path:
+                file_counts['아워홈'] += 1
+                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                all_rows.extend(extract_ourhome(df_sheet, 지점명))
+                processed_rows['아워홈'] += (len(all_rows) - rows_before)
+        except Exception as e:
+            st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
+    if not all_rows: return pd.DataFrame(), {}, {}
+    df_통합 = pd.DataFrame(all_rows, columns=['날짜', '지점명', '분류', '항목1', '항목2', '금액'])
+    df_통합['금액'] = pd.to_numeric(df_통합['금액'], errors='coerce')
+    df_통합.dropna(subset=['금액', '날짜'], inplace=True)
+    df_통합['날짜'] = pd.to_datetime(df_통합['날짜'], errors='coerce')
+    df_통합.dropna(subset=['날짜'], inplace=True)
+    return df_통합[df_통합['금액'] > 0].copy(), file_counts, processed_rows
 
 def get_data():
     if 'df_all_branches' not in st.session_state or st.session_state.df_all_branches is None:
@@ -193,13 +164,10 @@ def get_data():
             loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
         with st.spinner(loading_message):
             df_all, counts, rows = load_all_data_from_drive()
-            st.session_state.df_all_branches = df_all
-            st.session_state.file_counts = counts
-            st.session_state.processed_rows = rows
+            st.session_state.df_all_branches, st.session_state.file_counts, st.session_state.processed_rows = df_all, counts, rows
         st.rerun()
     return st.session_state.df_all_branches, st.session_state.file_counts, st.session_state.processed_rows
 
-# ------------------ 데이터 추출 헬퍼 함수들 ------------------
 def list_files_recursive(service, folder_id, path_prefix=""):
     files = []
     try:
