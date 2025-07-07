@@ -54,14 +54,6 @@ def setup_page():
     [data-testid="stDecoration"] {
         display: none !important;
     }
-
-    /* 추가: 감춰지지 않는 이상한 하단 박스들까지도 제거 */
-    .st-emotion-cache-zq5wmm, .st-emotion-cache-1v0mbdj,
-    .st-emotion-cache-13ln4jf, .st-emotion-cache-1avcm0n {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0px !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
