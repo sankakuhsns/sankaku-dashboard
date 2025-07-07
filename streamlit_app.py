@@ -368,13 +368,18 @@ if df_filtered.empty:
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
 식자재_분석용_df = df_filtered[(df_filtered['분류'] == '식자재') & (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))].copy() 
 
+# ... (기존 색상 정의 코드)
+
+# ✅ 이 라인을 추가하여 지점별 색상을 고정합니다.
+color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] for i, branch in enumerate(sorted(df['지점명'].unique()))}
+
 # --- 헤더 및 KPI ---
 분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
 분석최대일 = df_filtered['날짜'].max().strftime('%Y-%m-%d')
 
 st.markdown(f"""
 <div style='text-align: center; margin-bottom: 1rem; padding: 3rem 2rem; border-radius: 12px; background-color: #ffffff; border: 1px solid #cccccc; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
-    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 분석<br>시스템</span>
+    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 분석 시스템</span>
 </div>
 """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
