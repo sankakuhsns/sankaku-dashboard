@@ -611,32 +611,57 @@ if not df_expense_analysis.empty:
 else:
     df_profit_analysis_recalc = pd.DataFrame()
 
+# --- 1행 (3개 차트): 총순수익률 추이, 홀순수익률, 배달순수익률 선그래프 ---
 col_profit_rate1_1, col_profit_rate1_2, col_profit_rate1_3 = st.columns(3)
+
 with col_profit_rate1_1:
     display_styled_title_box("총 순수익률 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '총순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['총순수익률'].isnull().all():
         st.warning("데이터가 없어 '총 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_total_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
-        line_total_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['총순수익']])
+        line_total_profit_rate = px.line(
+            df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True,
+            color_discrete_map=color_map_지점,
+            custom_data=['총순수익'] # ✅ 순수익 금액 정보를 차트에 포함
+        )
+        line_total_profit_rate.update_traces(
+            texttemplate='%{y:.2f}%', textposition='top center',
+            hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>"
+        )
         line_total_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_total_profit_rate, use_container_width=True)
+
 with col_profit_rate1_2:
     display_styled_title_box("홀 순수익률 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '홀순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['홀순수익률'].isnull().all():
         st.warning("데이터가 없어 '홀 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
-        line_hall_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['홀순수익']])
+        line_hall_profit_rate = px.line(
+            df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True,
+            color_discrete_map=color_map_지점,
+            custom_data=['홀순수익'] # ✅ 홀 순수익 금액 정보를 차트에 포함
+        )
+        line_hall_profit_rate.update_traces(
+            texttemplate='%{y:.2f}%', textposition='top center',
+            hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>"
+        )
         line_hall_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_hall_profit_rate, use_container_width=True)
+
 with col_profit_rate1_3:
     display_styled_title_box("배달+포장 순수익률 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '배달순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['배달순수익률'].isnull().all():
         st.warning("데이터가 없어 '배달 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
-        line_delivery_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['배달순수익']])
+        line_delivery_profit_rate = px.line(
+            df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True,
+            color_discrete_map=color_map_지점,
+            custom_data=['배달순수익'] # ✅ 배달 순수익 금액 정보를 차트에 포함
+        )
+        line_delivery_profit_rate.update_traces(
+            texttemplate='%{y:.2f}%', textposition='top center',
+            hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>"
+        )
         line_delivery_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_delivery_profit_rate, use_container_width=True)
 
@@ -654,10 +679,11 @@ with col_profit_cost_1:
         df_profit_analysis_recalc['안전여유매출액'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['손익분기점_매출']
         df_bep_total = df_profit_analysis_recalc.groupby('월').agg(총매출=('총매출', 'sum'), 손익분기점_매출=('손익분기점_매출', 'sum'), 안전여유매출액=('안전여유매출액', 'sum')).reset_index()
         fig_bep = go.Figure()
-        fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['총매출'], name='총매출', marker_color=chart_colors_palette[0], hovertemplate="월: %{x}<br>총매출: %{y:,.0f}원<extra></extra>"))
-        fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['손익분기점_매출'], name='손익분기점 매출', marker_color=chart_colors_palette[1], hovertemplate="월: %{x}<br>손익분기점: %{y:,.0f}원<extra></extra>"))
-        fig_bep.add_trace(go.Scatter(x=df_bep_total['월'], y=df_bep_total['안전여유매출액'], mode='lines+markers', name='안전여유매출액', marker_color=chart_colors_palette[2], line=dict(width=2), hovertemplate="월: %{x}<br>안전여유매출액: %{y:,.0f}원<extra></extra>"))
-        fig_bep.update_layout(barmode='group', height=550, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis=dict(tickformat=",.0f"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['총매출'], name='총매출', marker_color=chart_colors_palette[0], text=df_bep_total['총매출']))
+        fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['손익분기점_매출'], name='손익분기점 매출', marker_color=chart_colors_palette[1], text=df_bep_total['손익분기점_매출']))
+        fig_bep.add_trace(go.Scatter(x=df_bep_total['월'], y=df_bep_total['안전여유매출액'], mode='lines+markers+text', name='안전여유매출액', marker_color=chart_colors_palette[2], line=dict(width=2), text=df_bep_total['안전여유매출액'], textposition="top center"))
+        fig_bep.update_traces(texttemplate='%{text:,.0f}', hovertemplate="월: %{x}<br>%{data.name}: %{y:,.0f}원<extra></extra>")
+        fig_bep.update_layout(barmode='group', height=550, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis=dict(tickformat=","), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_bep, use_container_width=True)
 with col_profit_cost_2:
     display_styled_title_box("식자재 원가율 추이", font_size="22px", margin_bottom="20px")
@@ -666,7 +692,7 @@ with col_profit_cost_2:
     else:
         df_profit_analysis_recalc['식자재_원가율'] = (df_profit_analysis_recalc.get('식자재', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
         line_food_cost = px.line(df_profit_analysis_recalc, x='월', y='식자재_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
-        line_food_cost.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
+        line_food_cost.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
         line_food_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_food_cost, use_container_width=True)
 with col_profit_cost_3:
@@ -676,7 +702,7 @@ with col_profit_cost_3:
     else:
         df_profit_analysis_recalc['인건비_원가율'] = (df_profit_analysis_recalc.get('인건비', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
         line_labor_cost = px.line(df_profit_analysis_recalc, x='월', y='인건비_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
-        line_labor_cost.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
+        line_labor_cost.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
         line_labor_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
