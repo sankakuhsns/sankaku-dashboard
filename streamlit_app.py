@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_HEADER_ROW = 2
+SINSEONG_HEADER_ROW = 2  # 엑셀의 3번째 행(인덱스 2)을 헤더로 사용
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="�",
+        page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -444,8 +444,9 @@ with col_chart2:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '매출 항목 월별 트렌드' 차트를 표시할 수 없습니다.")
     else:
-        line = px.line(매출.groupby(['월','항목1'])['금액'].sum().reset_index(), x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
-        line.update_traces(text=매출.groupby(['월','항목1'])['금액'].sum().apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
+        line_data = 매출.groupby(['월','항목1'])['금액'].sum().reset_index()
+        line = px.line(line_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
+        line.update_traces(text=line_data['금액'].apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
         line.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line, use_container_width=True)
 
@@ -586,7 +587,7 @@ with col_d_exp2:
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
-display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+display_styled_title_box("💰 순수익 분석 �", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
 if not df_expense_analysis.empty:
     df_profit_analysis_recalc = df_expense_analysis.copy()
@@ -594,14 +595,12 @@ if not df_expense_analysis.empty:
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
     df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
 
-    # 홀 순수익 계산
     df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
     홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
     df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
     df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
-    # 배달 순수익 계산
     df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
     배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
@@ -854,6 +853,6 @@ if not df_expense_analysis.empty:
                     fig_bar_sim = px.bar(df_sim_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_sim.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_sim.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2") # ✅ 중복 키 오류 해결
+                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
     st.warning("분석을 위한 데이터가 부족하여 시뮬레이션을 실행할 수 없습니다.")
