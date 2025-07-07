@@ -368,10 +368,13 @@ if df_filtered.empty:
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
 식자재_분석용_df = df_filtered[(df_filtered['분류'] == '식자재') & (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))].copy() 
 
-# ... (기존 색상 정의 코드)
-
-# ✅ 이 라인을 추가하여 지점별 색상을 고정합니다.
+chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
+color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
+color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(지출['항목1'].unique())}
+color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for i, month in enumerate(sorted(df['월'].unique()))}
+color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
 color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] for i, branch in enumerate(sorted(df['지점명'].unique()))}
+
 
 # --- 헤더 및 KPI ---
 분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
@@ -379,7 +382,7 @@ color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] 
 
 st.markdown(f"""
 <div style='text-align: center; margin-bottom: 1rem; padding: 3rem 2rem; border-radius: 12px; background-color: #ffffff; border: 1px solid #cccccc; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
-    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 분석 시스템</span>
+    <span style='color: #333333; font-size: 60px; font-weight: 700; letter-spacing: -1px;'>산카쿠 분석<br>시스템</span>
 </div>
 """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
@@ -417,8 +420,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 # 📈 매출 분석 섹션
 #######################
 display_styled_title_box("📈 매출 분석 📈", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
-chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
-color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
 col_chart1, col_chart2 = st.columns(2)
 with col_chart1:
     display_styled_title_box("매출 항목 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
@@ -440,8 +441,6 @@ with col_chart2:
         st.plotly_chart(line, use_container_width=True)
 
 st.markdown("---")
-color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for i, month in enumerate(sorted(df['월'].unique()))}
-color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
 col_chart3, col_chart4, col_chart5 = st.columns(3)
 with col_chart3:
     display_styled_title_box("지점별 매출 비교", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
@@ -449,9 +448,9 @@ with col_chart3:
         st.warning("매출 데이터가 없어 '지점별 매출 비교' 차트를 표시할 수 없습니다.")
     else:
         매출_지점별 = 매출.groupby('지점명')['금액'].sum().reset_index()
-        bar1 = px.bar(매출_지점별, x='지점명', y='금액', text='금액')
-        bar1.update_traces(texttemplate='%{text:,.0f}원', textposition='outside', hovertemplate="지점: %{x}<br>금액: %{y:,.0f}원<extra></extra>", marker_color='#555555', marker_line_color='#cccccc', marker_line_width=1)
-        bar1.update_layout(height=550, xaxis_tickangle=0, bargap=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        bar1 = px.bar(매출_지점별, x='지점명', y='금액', text='금액', color='지점명', color_discrete_map=color_map_지점)
+        bar1.update_traces(texttemplate='%{text:,.0f}원', textposition='outside', hovertemplate="지점: %{x}<br>금액: %{y:,.0f}원<extra></extra>")
+        bar1.update_layout(height=550, xaxis_tickangle=0, bargap=0.5, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
     display_styled_title_box("월별 매출 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
@@ -497,7 +496,6 @@ if not 매출.empty:
 else:
     df_expense_analysis = pd.DataFrame()
 
-color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(지출['항목1'].unique())}
 col_h_exp1, col_h_exp2 = st.columns(2)
 with col_h_exp1:
     display_styled_title_box("홀매출 지출 항목 비율", font_size="22px", margin_bottom="20px")
@@ -610,7 +608,7 @@ with col_profit_rate1_1:
     if df_profit_analysis_recalc.empty or '총순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['총순수익률'].isnull().all():
         st.warning("데이터가 없어 '총 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_total_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True)
+        line_total_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_total_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_total_profit_rate, use_container_width=True)
 with col_profit_rate1_2:
@@ -618,15 +616,15 @@ with col_profit_rate1_2:
     if df_profit_analysis_recalc.empty or '홀순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['홀순수익률'].isnull().all():
         st.warning("데이터가 없어 '홀 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True)
+        line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_hall_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_hall_profit_rate, use_container_width=True)
 with col_profit_rate1_3:
-    display_styled_title_box("배달 순수익률 추이", font_size="22px", margin_bottom="20px")
+    display_styled_title_box("배달+포장 순수익률 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '배달순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['배달순수익률'].isnull().all():
         st.warning("데이터가 없어 '배달 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True)
+        line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_delivery_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_delivery_profit_rate, use_container_width=True)
 
@@ -655,7 +653,7 @@ with col_profit_cost_2:
         st.warning("데이터가 없어 '식자재 원가율 추이' 차트를 표시할 수 없습니다.")
     else:
         df_profit_analysis_recalc['식자재_원가율'] = (df_profit_analysis_recalc.get('식자재', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
-        line_food_cost = px.line(df_profit_analysis_recalc, x='월', y='식자재_원가율', color='지점명', markers=True)
+        line_food_cost = px.line(df_profit_analysis_recalc, x='월', y='식자재_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_food_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_food_cost, use_container_width=True)
 with col_profit_cost_3:
@@ -664,7 +662,7 @@ with col_profit_cost_3:
         st.warning("데이터가 없어 '인건비 원가율 추이' 차트를 표시할 수 없습니다.")
     else:
         df_profit_analysis_recalc['인건비_원가율'] = (df_profit_analysis_recalc.get('인건비', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
-        line_labor_cost = px.line(df_profit_analysis_recalc, x='월', y='인건비_원가율', color='지점명', markers=True)
+        line_labor_cost = px.line(df_profit_analysis_recalc, x='월', y='인건비_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_labor_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
@@ -754,6 +752,70 @@ if not df_expense_analysis.empty:
 
         st.markdown("---")
         st.subheader("📈 시뮬레이션 결과 보고서")
-        # (이하 결과 보고서 차트 코드는 생략)
+        theme_color_map = {'현재': '#B0A696', '시뮬레이션': '#964F4C'}
+        cost_item_color_map = {'식자재': '#964F4C', '인건비': '#7A6C60', '배달비': '#B0A696', '고정비': '#5E534A', '소모품': '#DED3BF', '광고비': '#C0B4A0', '로열티': '#687E8E'}
+        row1_col1, row1_col2 = st.columns([2, 1])
+        with row1_col1:
+            display_styled_title_box("종합 비교", font_size="22px", margin_bottom="20px")
+            r1_sub_col1, r1_sub_col2 = st.columns(2)
+            with r1_sub_col1:
+                df_revenue = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_revenue, sim_revenue]})
+                fig_revenue = px.bar(df_revenue, x='구분', y='금액', color='구분', text_auto=True, title="총매출 비교", color_discrete_map=theme_color_map)
+                fig_revenue.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>")
+                fig_revenue.update_layout(height=550, showlegend=False, yaxis_title="금액(원)", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_revenue, use_container_width=True, key="sim_revenue_bar")
+            with r1_sub_col2:
+                df_cost = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_cost, sim_total_cost]})
+                fig_cost = px.bar(df_cost, x='구분', y='금액', color='구분', text_auto=True, title="총비용 비교", color_discrete_map=theme_color_map)
+                fig_cost.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>")
+                fig_cost.update_layout(height=550, showlegend=False, yaxis_title="금액(원)", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
+        with row1_col2:
+            display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+            df_profit_rate = pd.DataFrame({'구분': ['현재', '시뮬레이션'],'수익률': [base_profit_margin, sim_profit_margin], '수익금액': [base_profit, sim_profit]})
+            fig_profit_rate = px.line(df_profit_rate, x='구분', y='수익률', markers=True, text='수익률', custom_data=['수익금액'])
+            fig_profit_rate.update_traces(line=dict(color='#687E8E', width=3), marker=dict(size=10, color='#687E8E'), texttemplate='%{text:.1f}%', textposition='top center', hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>")
+            fig_profit_rate.update_layout(height=550, yaxis_title="순수익률 (%)", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(range=[-0.5, 1.5]))
+            st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
+        st.markdown("---")
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1:
+            display_styled_title_box("현재 비용 구조", font_size="22px", margin_bottom="20px")
+            r2_c1_sub1, r2_c1_sub2 = st.columns(2)
+            base_costs_for_pie = {k: v for k, v in base_costs.items() if v > 0}
+            with r2_c1_sub1:
+                if base_costs_for_pie:
+                    pie_data = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액'])
+                    fig_pie_base = px.pie(pie_data, names='항목', values='금액')
+                    pie_colors = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data['항목']]
+                    fig_pie_base.update_traces(marker=dict(colors=pie_colors), textinfo='percent+label', textfont_size=14, hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>")
+                    fig_pie_base.update_layout(height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_pie_base, use_container_width=True, key="base_cost_pie")
+            with r2_c1_sub2:
+                if base_costs_for_pie:
+                    df_base_costs = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
+                    fig_bar_base = px.bar(df_base_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
+                    fig_bar_base.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
+                    fig_bar_base.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar")
+        with row2_col2:
+            display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
+            r2_c2_sub1, r2_c2_sub2 = st.columns(2)
+            sim_costs_for_pie = {k: v for k, v in sim_costs.items() if v > 0}
+            with r2_c2_sub1:
+                if sim_costs_for_pie:
+                    pie_data_sim = pd.DataFrame(list(sim_costs_for_pie.items()), columns=['항목', '금액'])
+                    fig_pie_sim = px.pie(pie_data_sim, names='항목', values='금액')
+                    pie_colors_sim = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data_sim['항목']]
+                    fig_pie_sim.update_traces(marker=dict(colors=pie_colors_sim), textinfo='percent+label', textfont_size=14, hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>")
+                    fig_pie_sim.update_layout(height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_pie_sim, use_container_width=True, key="sim_cost_pie")
+            with r2_c2_sub2:
+                if sim_costs_for_pie:
+                    df_sim_costs = pd.DataFrame(list(sim_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
+                    fig_bar_sim = px.bar(df_sim_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
+                    fig_bar_sim.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
+                    fig_bar_sim.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar")
 else:
     st.warning("분석을 위한 데이터가 부족하여 시뮬레이션을 실행할 수 없습니다.")
