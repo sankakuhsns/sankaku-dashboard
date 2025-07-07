@@ -683,10 +683,10 @@ display_styled_title_box(
 if not 매출.empty:
     총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
     
-    # ✅ 수정: '배달매출'과 '포장매출'을 함께 집계
+    # '배달매출'과 '포장매출'을 함께 집계
     배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
     
-    # ✅ 수정: '홀매출'만 집계하도록 변경
+    # '홀매출'만 집계하도록 변경
     홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
     
     지출_항목1별_월별_지점별_raw = pd.DataFrame(columns=['지점명', '월'] + all_possible_expense_categories_for_analysis)
@@ -703,12 +703,10 @@ if not 매출.empty:
     지출_항목1별_월별_지점별 = 지출_항목1별_월별_지점별_raw.reindex(columns=cols_to_reindex_지출_pivot, fill_value=0)
     
     df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
-    # ✅ 수정: merge 대상을 '홀매출_총액'으로 변경
     df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
 else:
     df_expense_analysis = pd.DataFrame()
-
 
 # --- 1줄 홀매출 지출항목 비율(원형차트), 홀매출 지출항목 월별지출 선그래프 ---
 col_h_exp1, col_h_exp2 = st.columns(2)
@@ -723,14 +721,12 @@ with col_h_exp1:
     # DAX 방식: 각 지출 항목에 홀매출 비중을 곱한 후 총합 계산
     pie_data_list_h = []
     
-    valid_총매출_series = df_expense_analysis['총매출'].replace(0, 1) # 0으로 나누는 것을 방지
-    홀매출_분석용_비중_series = (df_expense_analysis['홀_포장_매출_총액'] / valid_총매출_series).fillna(0)
-    홀매출_분석용_비중_series.replace([float('inf'), -float('inf')], 0, inplace=True)
+   # ✅ 수정: '홀매출_총액'을 기준으로 비용 배분
+    valid_총매출_series = df_expense_analysis['총매출'].replace(0, 1)
+    홀매출_분석용_비중_series = (df_expense_analysis.get('홀매출_총액', 0) / valid_총매출_series).fillna(0)
 
-    df_expense_analysis['홀매출_비중_계산용'] = 홀매출_분석용_비중_series
-
-    for item in 홀매출_지출_원형_대상_항목: # 홀매출_지출_원형_대상_항목 사용
-        allocated_amount = (df_expense_analysis[item] * df_expense_analysis['홀매출_비중_계산용']).sum()
+    for item in 홀매출_지출_원형_대상_항목:
+        allocated_amount = (df_expense_analysis[item] * 홀매출_분석용_비중_series).sum()
         if allocated_amount > 0:
             pie_data_list_h.append({'항목1': item, '금액': allocated_amount})
     
@@ -770,14 +766,15 @@ with col_h_exp2:
     홀매출_분석용_비중_series_for_line = (df_expense_analysis['홀_포장_매출_총액'] / valid_총매출_for_line_h_series).fillna(0)
     홀매출_분석용_비중_series_for_line.replace([float('inf'), -float('inf')], 0, inplace=True)
 
-    df_expense_analysis['홀매출_비중_계산용'] = 홀매출_분석용_비중_series_for_line
+    # ✅ 수정: '홀매출_총액'을 기준으로 비용 배분
+    df_expense_analysis['홀매출_비중_계산용'] = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
 
-    for item in 홀매출_지출_원형_대상_항목: # 홀매출_지출_원형_대상_항목 사용
+    for item in 홀매출_지출_원형_대상_항목:
         if item in df_expense_analysis.columns:
             df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['홀매출_비중_계산용']).sum()).reset_index(name='금액')
             df_홀지출_월별_data_list.append(df_temp.assign(항목1=item))
     
-    df_홀지출_월별_data = pd.concat(df_홀지출_월별_data_list, ignore_index=True) if df_홀지출_월별_data_list else pd.DataFrame(columns=['월', '항목1', '금액'])
+    df_홀지출_월별_data = pd.concat(df_홀지출_월별_data_list, ignore_index=True) if df_홀지출_월별_data_list else pd.DataFrame()
 
     if df_홀지출_월별_data.empty or df_홀지출_월별_data['금액'].sum() == 0 or df_홀지출_월별_data['금액'].isnull().all():
         st.warning("선택된 필터 조건에 해당하는 홀매출 지출 데이터가 없어 '홀매출 월별 지출' 차트를 표시할 수 없습니다.")
