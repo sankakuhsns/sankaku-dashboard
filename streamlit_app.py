@@ -1196,6 +1196,11 @@ display_styled_title_box(
     background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px"
 )
 
+VARIABLE_COST_ITEMS = ['식자재', '소모품']
+DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS = ['배달비']
+FIXED_COST_ITEMS = ['인건비', '광고비', '고정비']
+ALL_POSSIBLE_EXPENSE_CATEGORIES = VARIABLE_COST_ITEMS + DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS + FIXED_COST_ITEMS
+
 # --- 0. 시뮬레이션 기반 데이터 준비 ---
 if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns and df_expense_analysis['총매출'].sum() > 0:
     num_months = len(선택_월)
