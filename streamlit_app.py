@@ -585,6 +585,8 @@ with col_h_exp2:
         line_expense_h2 = px.line(df_홀지출_월별_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
         line_expense_h2.update_traces(text=df_홀지출_월별_data['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
         line_expense_h2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_expense_h2.update_xaxes(fixedrange=True)
+        line_expense_h2.update_yaxes(fixedrange=True)
         st.plotly_chart(line_expense_h2, use_container_width=True)
 
 st.markdown("---")
@@ -627,6 +629,8 @@ with col_d_exp2:
         line_expense_d2 = px.line(df_temp_line_d, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
         line_expense_d2.update_traces(text=df_temp_line_d['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
         line_expense_d2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_expense_d2.update_xaxes(fixedrange=True)
+        line_expense_d2.update_yaxes(fixedrange=True)
         st.plotly_chart(line_expense_d2, use_container_width=True)
 
 ####################################################################################################
@@ -666,6 +670,8 @@ with col_profit_rate1_1:
         line_total_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True, custom_data=['총순수익'], color_discrete_map=color_map_지점)
         line_total_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_total_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%", tickformat=",.2f"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_total_profit_rate.update_xaxes(fixedrange=True)
+        line_total_profit_rate.update_yaxes(fixedrange=True)
         st.plotly_chart(line_total_profit_rate, use_container_width=True)
 with col_profit_rate1_2:
     display_styled_title_box("홀 순수익률 추이", font_size="22px", margin_bottom="20px")
@@ -675,6 +681,8 @@ with col_profit_rate1_2:
         line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True, custom_data=['홀순수익'], color_discrete_map=color_map_지점)
         line_hall_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_hall_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_hall_profit_rate.update_xaxes(fixedrange=True)
+        line_hall_profit_rate.update_yaxes(fixedrange=True)
         st.plotly_chart(line_hall_profit_rate, use_container_width=True)
 with col_profit_rate1_3:
     display_styled_title_box("배달+포장 순수익률 추이", font_size="22px", margin_bottom="20px")
@@ -684,6 +692,8 @@ with col_profit_rate1_3:
         line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True, custom_data=['배달순수익'], color_discrete_map=color_map_지점)
         line_delivery_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_delivery_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_delivery_profit_rate.update_xaxes(fixedrange=True)
+        line_delivery_profit_rate.update_yaxes(fixedrange=True)
         st.plotly_chart(line_delivery_profit_rate, use_container_width=True)
 
 st.markdown("---")
@@ -716,6 +726,8 @@ with col_profit_cost_2:
         line_food_cost = px.line(df_profit_analysis_recalc, x='월', y='식자재_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_food_cost.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>원가율:</b> %{y:.2f}%<extra></extra>")
         line_food_cost.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_food_cost.update_xaxes(fixedrange=True)
+        line_food_cost.update_yaxes(fixedrange=True)
         st.plotly_chart(line_food_cost, use_container_width=True)
 with col_profit_cost_3:
     display_styled_title_box("인건비 원가율 추이", font_size="22px", margin_bottom="20px")
@@ -726,6 +738,8 @@ with col_profit_cost_3:
         line_labor_cost = px.line(df_profit_analysis_recalc, x='월', y='인건비_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
         line_labor_cost.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>원가율:</b> %{y:.2f}%<extra></extra>")
         line_labor_cost.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line_labor_cost.update_xaxes(fixedrange=True)
+        line_labor_cost.update_yaxes(fixedrange=True)
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
 ####################################################################################################
