@@ -674,37 +674,24 @@ with col_chart5:
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
-display_styled_title_box(
-    "💸 지출 분석 💸",
-    background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px"
-)
+display_styled_title_box("💸 지출 분석 💸", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-# --- 분석용 데이터프레임 생성 ---
 if not 매출.empty:
     총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
-    
-    # '배달매출'과 '포장매출'을 함께 집계
     배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
-    
-    # '홀매출'만 집계하도록 변경
     홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
     
-    지출_항목1별_월별_지점별_raw = pd.DataFrame(columns=['지점명', '월'] + all_possible_expense_categories_for_analysis)
+    지출_항목1별_월별_지점별_raw = pd.DataFrame()
     if not 지출.empty:
-        try:
-            지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
-            for col in all_possible_expense_categories_for_analysis:
-                if col not in 지출_항목1별_월별_지점별_raw.columns:
-                    지출_항목1별_월별_지점별_raw[col] = 0
-        except Exception as e:
-            st.warning(f"DEBUG: 지출 피벗 테이블 생성 중 오류 발생: {e}")
-
-    cols_to_reindex_지출_pivot = ['지점명', '월'] + [item for item in all_possible_expense_categories_for_analysis if item not in ['지점명', '월']]
-    지출_항목1별_월별_지점별 = 지출_항목1별_월별_지점별_raw.reindex(columns=cols_to_reindex_지출_pivot, fill_value=0)
+        지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
     
+    for col in all_possible_expense_categories_for_analysis:
+        if col not in 지출_항목1별_월별_지점별_raw.columns:
+            지출_항목1별_월별_지점별_raw[col] = 0
+
     df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
-    df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
+    df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
 else:
     df_expense_analysis = pd.DataFrame()
 
@@ -913,64 +900,35 @@ display_styled_title_box(
     "💰 순수익 분석 💰",
     background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-# --- 순수익 분석 데이터 준비 (재계산) ---
+# --- 순수익 분석 데이터 준비 ---
 if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns:
-    df_profit_analysis_recalc = df_expense_analysis.copy() # df_expense_analysis는 모든 필요한 컬럼을 포함하고 있음
+    df_profit_analysis_recalc = df_expense_analysis.copy()
 
-    # 총지출 (모든 지출 항목의 합계)
+    # 총지출 및 총순수익 계산
     df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[[item for item in all_possible_expense_categories_for_analysis if item in df_profit_analysis_recalc.columns]].sum(axis=1)
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
-    df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'] * 100).fillna(0)
-    df_profit_analysis_recalc.loc[df_profit_analysis_recalc['총매출'] == 0, '총순수익률'] = 0
+    df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9) * 100).fillna(0)
 
+    # --- 홀 순수익 계산 ---
+    df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
+    홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
+    
+    # 홀매출에 배분될 공통 비용 계산 (배달비 제외)
+    홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
+    df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
+    df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9)).fillna(0) * 100
 
-# 홀 순수익 계산 (홀매출 = 홀_포장_매출_총액)
-df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc['홀_포장_매출_총액']
-
-df_profit_analysis_recalc['홀_변동비_계산'] = 0
-valid_총매출 = df_profit_analysis_recalc['총매출'].replace(0, 1e-9) # 0으로 나누는 것을 방지
-홀매출_비중_for_변동비 = (df_profit_analysis_recalc['홀매출_분석용'] / valid_총매출).fillna(0)
-홀매출_비중_for_변동비.replace([float('inf'), -float('inf')], 0, inplace=True)
-
-
-for item in VARIABLE_COST_ITEMS: # 식자재, 소모품 등
-    if item in df_profit_analysis_recalc.columns:
-        df_profit_analysis_recalc['홀_변동비_계산'] += df_profit_analysis_recalc[item] * 홀매출_비중_for_변동비
-
-df_profit_analysis_recalc['홀_고정비_계산'] = 0
-for item in FIXED_COST_ITEMS: # 인건비, 광고비, 고정비
-    if item in df_profit_analysis_recalc.columns:
-        df_profit_analysis_recalc['홀_고정비_계산'] += df_profit_analysis_recalc[item] * 홀매출_비중_for_변동비 # 고정비도 매출 비중에 따라 배분
-
-df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - df_profit_analysis_recalc['홀_변동비_계산'] - df_profit_analysis_recalc['홀_고정비_계산']
-df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'] * 100).fillna(0)
-df_profit_analysis_recalc.loc[df_profit_analysis_recalc['홀매출_분석용'] == 0, '홀순수익률'] = 0
-
-
-# 배달 순수익 계산
-df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc['배달매출_총액'] # 배달매출은 그대로 사용
-
-df_profit_analysis_recalc['배달_변동비_계산'] = 0
-valid_총매출_for_delivery_ratio = df_profit_analysis_recalc['총매출'].replace(0, 1e-9)
-배달매출_비중_for_변동비 = (df_profit_analysis_recalc['배달매출_분석용'] / valid_총매출_for_delivery_ratio).fillna(0)
-배달매출_비중_for_변동비.replace([float('inf'), -float('inf')], 0, inplace=True)
-
-for item in VARIABLE_COST_ITEMS: # 식자재, 소모품 등
-    if item in df_profit_analysis_recalc.columns:
-        df_profit_analysis_recalc['배달_변동비_계산'] += df_profit_analysis_recalc[item] * 배달매출_비중_for_변동비
-
-for item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS: # 배달비
-    if item in df_profit_analysis_recalc.columns:
-        df_profit_analysis_recalc['배달_변동비_계산'] += df_profit_analysis_recalc[item]
-
-df_profit_analysis_recalc['배달_고정비_계산'] = 0
-for item in FIXED_COST_ITEMS: # 인건비, 광고비, 고정비
-    if item in df_profit_analysis_recalc.columns:
-        df_profit_analysis_recalc['배달_고정비_계산'] += df_profit_analysis_recalc[item] * 배달매출_비중_for_변동비
-
-df_profit_analysis_recalc['배달순수익'] = df_profit_analysis_recalc['배달매출_분석용'] - df_profit_analysis_recalc['배달_변동비_계산'] - df_profit_analysis_recalc['배달_고정비_계산']
-df_profit_analysis_recalc['배달순수익률'] = (df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'] * 100).fillna(0)
-df_profit_analysis_recalc.loc[df_profit_analysis_recalc['배달매출_분석용'] == 0, '배달순수익률'] = 0
+    # --- 배달+포장 순수익 계산 ---
+    df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
+    배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
+    
+    # 배달매출에 배분될 공통 비용 계산
+    배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
+    # 배달매출에만 해당하는 전용 비용 (배달비)
+    배달매출_전용비용 = df_profit_analysis_recalc.get('배달비', 0)
+    
+    df_profit_analysis_recalc['배달순수익'] = df_profit_analysis_recalc['배달매출_분석용'] - (배달매출_관련_공통비용 + 배달매출_전용비용)
+    df_profit_analysis_recalc['배달순수익률'] = (df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9)).fillna(0) * 100
 
 
 # --- 1행 (3개 차트): 총순수익률 추이, 홀순수익률, 배달순수익률 선그래프 ---
@@ -1246,23 +1204,19 @@ display_styled_title_box(
 if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns and df_expense_analysis['총매출'].sum() > 0:
     num_months = len(선택_월)
     num_stores = df_expense_analysis['지점명'].nunique()
+    divisor = num_months * num_stores if num_months * num_stores > 0 else 1
     
-    divisor_months = num_months if num_months > 0 else 1
-    divisor_stores = num_stores if num_stores > 0 else 1
-
-    base_total_revenue = df_expense_analysis['총매출'].sum() / divisor_months / divisor_stores
-    base_costs = {item: df_expense_analysis[item].sum() / divisor_months / divisor_stores for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
+    base_total_revenue = df_expense_analysis['총매출'].sum() / divisor
+    base_costs = {item: df_expense_analysis[item].sum() / divisor for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
     
-    # ✅ 수정: 홀매출 비율 계산 기준을 '홀매출_총액'으로 변경
-    if '홀매출_총액' in df_expense_analysis.columns and base_total_revenue > 0:
-        base_hall_ratio = ( (df_expense_analysis['홀매출_총액'].sum() / divisor_months / divisor_stores) / base_total_revenue * 100)
-    else:
-        base_hall_ratio = 0.0
+    base_hall_revenue = df_expense_analysis.get('홀매출_총액', 0).sum() / divisor
+    base_delivery_takeout_revenue = df_expense_analysis.get('배달매출_총액', 0).sum() / divisor
+    base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
 else:
-    st.warning("시뮬레이션을 위해 사이드바에서 1개 이상의 '월'과 '지점'을 선택하고, 충분한 매출 데이터가 로드되었는지 확인해주세요.")
+    st.warning("분석 데이터가 없어 시뮬레이션을 실행할 수 없습니다.")
     st.stop()
 
 # --- 1. 현재 상태 요약 ---
@@ -1310,13 +1264,10 @@ with info_col2:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # 시뮬레이션 매출액 및 성장률 계산
-base_hall_revenue = (df_expense_analysis['홀매출_총액'].sum() / divisor_months / divisor_stores) if '홀매출_총액' in df_expense_analysis else 0
-base_delivery_takeout_revenue = (df_expense_analysis['배달매출_총액'].sum() / divisor_months / divisor_stores) if '배달매출_총액' in df_expense_analysis else 0
-
 sim_hall_revenue = sim_revenue * (sim_hall_ratio_pct / 100)
 sim_delivery_takeout_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
 
-live_hall_revenue_growth = sim_hall_revenue / base_hall_revenue if base_hall_revenue > 0 else 0
+live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 0
 live_delivery_takeout_revenue_growth = sim_delivery_takeout_revenue / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
@@ -1340,12 +1291,22 @@ st.markdown("""<style>div[data-testid="stButton"] > button { height: 60px; paddi
 if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     sim_costs = {}
     cost_adjustment_defaults = locals().get('cost_adjustments', {})
+    
+    # 변동비 (식자재, 소모품 등)는 전체 매출 성장에 따라 변동
     for item in VARIABLE_COST_ITEMS:
-        if item in base_costs: sim_costs[item] = base_costs[item] * live_total_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+        if item in base_costs:
+            sim_costs[item] = base_costs[item] * live_total_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+    
+    # 배달 관련 변동비 (배달비)는 배달+포장 매출 성장에 따라 변동
     for item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
-        if item in base_costs: sim_costs[item] = base_costs[item] * live_delivery_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+        if item in base_costs:
+            sim_costs[item] = base_costs[item] * live_delivery_takeout_revenue_growth * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+    
+    # 고정비는 기본적으로는 불변, 슬라이더 조정만 반영
     for item in FIXED_COST_ITEMS:
-        if item in base_costs: sim_costs[item] = base_costs[item] * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+        if item in base_costs:
+            sim_costs[item] = base_costs[item] * (1 + cost_adjustment_defaults.get(item, 0) / 100)
+            
     sim_costs['로열티'] = sim_revenue * (royalty_rate / 100)
     sim_total_cost = sum(sim_costs.values())
     sim_profit = sim_revenue - sim_total_cost
