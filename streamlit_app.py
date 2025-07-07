@@ -1224,29 +1224,38 @@ summary_cols[2].metric("평균 순수익", f"{base_profit:,.0f} 원")
 summary_cols[3].metric("평균 순수익률", f"{base_profit_margin:.1f}%")
 st.markdown("---")
 
-# --- 2. 시뮬레이션 조건 설정 UI ---
+# --- 2. 시뮬레이션 조건 설정 UI (수정됨) ---
 st.subheader("⚙️ 시뮬레이션 조건 설정")
 
-col1, col2 = st.columns(2)
-with col1:
-    sim_revenue = st.number_input(
-        "예상 월평균 매출 (원)",
-        min_value=0.0, value=base_total_revenue, step=100000.0, format="%.0f",
-        help=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원"
-    )
-with col2:
-    sim_hall_ratio_pct = st.slider(
-        "예상 홀매출 비율 (%)",
-        min_value=0.0, max_value=100.0, value=base_hall_ratio, step=0.1, format="%.1f",
-        help=f"현재 홀매출 비율: {base_hall_ratio:.1f}%"
-    )
+# ✅ 새로운 UI 컨트롤 사용
+sim_revenue = custom_slider(
+    label="예상 월평균 매출 (원)",
+    min_value=0.0,
+    max_value=base_total_revenue * 3, # 최대값을 현재의 3배로 설정
+    default_value=base_total_revenue,
+    step=100000.0,
+    help_text=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원",
+    key="sim_revenue"
+)
+
+sim_hall_ratio_pct = custom_slider(
+    label="예상 홀매출 비율 (%)",
+    min_value=0.0,
+    max_value=100.0,
+    default_value=base_hall_ratio,
+    step=0.1,
+    help_text=f"현재 홀매출 비율: {base_hall_ratio:.1f}%",
+    key="sim_hall_ratio"
+)
 
 sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
+
 info_col1, info_col2 = st.columns(2)
 with info_col1:
     st.markdown(f"<div class='info-box'>홀매출 비율: {sim_hall_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
 with info_col2:
     st.markdown(f"<div class='info-box'>배달+포장 비율: {sim_delivery_ratio_pct:.1f}%</div>", unsafe_allow_html=True)
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 # 실시간 성장률 계산
@@ -1255,36 +1264,33 @@ live_delivery_takeout_revenue_growth = (sim_revenue * (sim_delivery_ratio_pct / 
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
-    cost_cols = st.columns(3)
     ordered_cost_items = ['식자재', '소모품', '배달비', '인건비', '광고비', '고정비']
-    col_idx = 0
     for item in ordered_cost_items:
         if item in base_costs:
-            with cost_cols[col_idx % 3]:
-                slider_value = st.slider(f"{item} 조정률 (%)", -50.0, 50.0, 0.0, 0.1, "%.1f", help=f"현재 월평균 {item} 비용: {base_costs.get(item, 0):,.0f} 원", key=f"slider_{item}")
-                cost_adjustments[item] = slider_value
-                
-                # ✅ 수정: 변동액 표시 로직 복원 및 개선
-                base_cost_item = base_costs.get(item, 0)
-                growth_factor = 1.0
-                if item in VARIABLE_COST_ITEMS:
-                    growth_factor = live_total_revenue_growth
-                elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
-                    growth_factor = live_delivery_takeout_revenue_growth
-                
-                final_sim_cost = base_cost_item * growth_factor * (1 + slider_value / 100)
-                adjustment_amount = final_sim_cost - base_cost_item
-                sign = "+" if adjustment_amount >= 0 else ""
-                color = "#3D9970" if adjustment_amount >= 0 else "#FF4136"
-                st.markdown(f"<p style='color:{color}; text-align:right; font-weight:bold;'>변동액: {sign}{adjustment_amount:,.0f} 원</p>", unsafe_allow_html=True)
-            col_idx += 1
-            
+            # ✅ 모든 비용 조정 슬라이더를 새로운 UI 컨트롤로 교체
+            cost_adjustments[item] = custom_slider(
+                label=f"{item} 조정률 (%)",
+                min_value=-50.0,
+                max_value=50.0,
+                default_value=0.0,
+                step=0.1,
+                help_text=f"현재 월평균 {item} 비용: {base_costs.get(item, 0):,.0f} 원",
+                key=f"slider_{item}"
+            )
+
 st.markdown("---")
-royalty_rate = st.slider("👑 로열티 설정 (매출 대비 %)", 0.0, 10.0, 0.0, 0.1, "%.1f%%")
+# ✅ 로열티 설정도 새로운 UI 컨트롤로 교체
+royalty_rate = custom_slider(
+    label="👑 로열티 설정 (매출 대비 %)",
+    min_value=0.0,
+    max_value=10.0,
+    default_value=0.0,
+    step=0.1,
+    help_text="전체 예상 매출액 대비 로열티 비율을 설정합니다.",
+    key="royalty_rate"
+)
 st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
 st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("""<style>div[data-testid="stButton"] > button { height: 60px; padding: 10px 24px; font-size: 24px; font-weight: bold; }</style>""", unsafe_allow_html=True)
 
 if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     sim_costs = {}
