@@ -43,23 +43,23 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-st.markdown("""
-    <style>
-    /* GitHub 링크가 있는 햄버거 메뉴 숨기기 */
-    #MainMenu {visibility: hidden;}
+    st.markdown("""
+        <style>
+        /* GitHub 링크가 있는 햄버거 메뉴 숨기기 */
+        #MainMenu {visibility: hidden;}
 
-    /* 하단 "Made with Streamlit" 푸터 숨기기 */
-    footer {visibility: hidden;}
+        /* 하단 "Made with Streamlit" 푸터 숨기기 */
+        footer {visibility: hidden;}
 
-    /* Streamlit Cloud 배포 왕관 아이콘 숨기기 */
-    [data-testid="stDecoration"] {
+        /* Streamlit Cloud 배포 왕관 아이콘 숨기기 */
+        [data-testid="stDecoration"] {
         display: none !important;
-    }
+        }
 
     /* 문제가 되었던 header 숨김 코드는 여기서 삭제합니다. */
 
-    </style>
-""", unsafe_allow_html=True)
+        </style>
+    """, unsafe_allow_html=True)
 
     
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
