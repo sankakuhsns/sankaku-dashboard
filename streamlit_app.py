@@ -64,20 +64,33 @@ def display_styled_title_box(title_text, **kwargs):
     """, unsafe_allow_html=True)
 
 def custom_slider(label, min_value, max_value, default_value, step, help_text, key, format_str="%.1f"):
+    """
+    st.session_state를 사용해 슬라이더와 숫자 입력이 항상 동기화되도록 개선된 함수.
+    숫자 입력 칸은 +/- 버튼을 기본으로 포함합니다.
+    """
+    # session_state에 값이 없으면 default_value로 초기화
     if key not in st.session_state:
         st.session_state[key] = default_value
-    
-    main_col, _, val_col = st.columns([10, 1, 3])
-    with main_col:
-        new_slider_val = st.slider(label, min_value, max_value, value=st.session_state[key], step=step, help=help_text, key=f"{key}_slider")
-        if new_slider_val != st.session_state[key]:
-            st.session_state[key] = new_slider_val
+
+    # UI 레이아웃
+    c1, c2 = st.columns([0.7, 0.3])
+
+    # 슬라이더 값 변경 처리
+    with c1:
+        slider_val = st.slider(label, min_value, max_value, st.session_state[key], step, help=help_text, key=f"{key}_slider")
+        # 슬라이더를 움직이면 state 업데이트
+        if slider_val != st.session_state[key]:
+            st.session_state[key] = slider_val
             st.rerun()
-    with val_col:
-        new_num_val = st.number_input(label, min_value, max_value, value=st.session_state[key], step=step, label_visibility="collapsed", key=f"{key}_number", format=format_str)
-        if new_num_val != st.session_state[key]:
-            st.session_state[key] = new_num_val
+
+    # 숫자 입력 값 변경 처리
+    with c2:
+        number_val = st.number_input(" ", min_value, max_value, st.session_state[key], step, label_visibility="collapsed", key=f"{key}_num", format=format_str)
+        # 숫자 칸 값을 바꾸면 state 업데이트
+        if number_val != st.session_state[key]:
+            st.session_state[key] = number_val
             st.rerun()
+
     return st.session_state[key]
 
 # ------------------ 로그인 및 데이터 로딩 함수들 ------------------
@@ -753,27 +766,26 @@ if not df_expense_analysis.empty:
     st.subheader("⚙️ 시뮬레이션 조건 설정")
 
     sim_rev_col, sim_hall_col = st.columns(2)
+    sim_rev_col, sim_hall_col = st.columns(2)
     with sim_rev_col:
-        # 최대값을 1억 5천만으로 수정
+        # ✅ [요청 반영] format_str="%.0f"로 소수점 제거, 도움말에는 쉼표 서식 적용
         sim_revenue = custom_slider(
             label="예상 월평균 매출 (원)",
-            min_value=0.0,
-            max_value=150_000_000.0, # 최대값 수정
-            default_value=base_total_revenue,
-            step=100000.0,
+            min_value=0.0, max_value=150_000_000.0,
+            default_value=base_total_revenue, step=100000.0,
             help_text=f"현재 지점당 월평균 매출: {base_total_revenue:,.0f} 원",
             key="sim_revenue",
             format_str="%.0f"
         )
     with sim_hall_col:
+        # ✅ [요청 반영] 소수점 한 자리, +/- 버튼이 있는 숫자 칸 사용
         sim_hall_ratio_pct = custom_slider(
             label="예상 홀매출 비율 (%)",
-            min_value=0.0,
-            max_value=100.0,
-            default_value=base_hall_ratio,
-            step=0.1,
+            min_value=0.0, max_value=100.0,
+            default_value=base_hall_ratio, step=0.1,
             help_text=f"현재 홀매출 비율: {base_hall_ratio:.1f}%",
-            key="sim_hall_ratio"
+            key="sim_hall_ratio",
+            format_str="%.1f" # 소수점 한 자리 지정
         )
 
     sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
