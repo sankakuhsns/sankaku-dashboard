@@ -254,33 +254,45 @@ def extract_doori(df, 지점명):
     return out
 
 def extract_sinseongmeat(df, 지점명):
+    """
+    (수정) '신성미트' 파일에서 식자재 데이터를 추출합니다.
+    - 3행을 헤더로 읽은 후, '구분' 열이 '매출'인 행만 필터링합니다.
+    - '거래일자', '품목명', 그리고 9번째 열(매출공급가)의 데이터를 추출합니다.
+    """
     out = []
-    # ✅ 수정: 헤더를 읽었으므로, 컬럼 이름으로 접근
-    try:
-        date_col, type_col, item_col = '거래일자', '구분', '품목명'
-        amount_col = df.columns[8]  # I열
-    except IndexError:
-        st.warning(f"신성미트 파일({지점명})에 필요한 열(A, B, C, I)이 부족합니다.")
-        return []
     
-    # 필요한 컬럼들이 모두 존재하는지 확인
-    required_cols = [date_col, type_col, item_col]
-    if not all(col in df.columns for col in required_cols):
-        return [] # 필수 컬럼이 없으면 처리 중단
+    # 헤더로 읽힌 컬럼 이름들을 확인 (파일마다 조금씩 다를 수 있음을 대비)
+    try:
+        # 지시사항에 따른 컬럼명 (A열, B열, C열)
+        date_col_name = '거래일자'
+        type_col_name = '구분'
+        item_col_name = '품목명'
+        amount_col_name = df.columns[8] # 9번째 열 (I열)
+        
+        # 파일에 해당 컬럼들이 있는지 다시 한번 확인
+        required_cols = [date_col_name, type_col_name, item_col_name, amount_col_name]
+        if not all(col in df.columns for col in required_cols):
+            # st.warning(f"신성미트 파일({지점명})에 필요한 컬럼({required_cols})이 없습니다.")
+            return []
+    except IndexError:
+        # st.warning(f"신성미트 파일({지점명})의 열 개수가 부족합니다.")
+        return []
 
-    for _, row in df.iterrows():
-        if str(row[type_col]).strip() != '매출':
-            continue
+    # '구분' 열의 값이 '매출'인 행만 필터링
+    df_filtered = df[df[type_col_name].astype(str).str.strip() == '매출'].copy()
+
+    for _, row in df_filtered.iterrows():
         try:
-            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
+            날짜 = pd.to_datetime(row[date_col_name]).strftime('%Y-%m-%d')
         except (ValueError, TypeError):
             continue
-        
-        항목2 = str(row[item_col]).strip()
-        금액 = pd.to_numeric(row[amount_col], errors='coerce')
+
+        항목2 = str(row[item_col_name]).strip()
+        금액 = pd.to_numeric(row[amount_col_name], errors='coerce')
 
         if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
+            
     return out
 
 
