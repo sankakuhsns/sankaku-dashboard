@@ -21,8 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_HEADER_ROW = 2  # ✅ 누락된 변수 추가: 엑셀의 3번째 행을 헤더로 사용
-SINSEONG_DATA_START_ROW = 3 # 이 변수는 현재 로직에서 직접 사용되진 않지만, 명확성을 위해 유지
+SINSEONG_HEADER_ROW = 2
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -161,7 +160,6 @@ def load_all_data_from_drive():
                     processed_rows['두리축산'] += (len(all_rows) - rows_before)
                 elif "신성미트" in file_path:
                     file_counts['신성미트'] += 1
-                    # ✅ 수정: 신성미트 파일은 3행을 헤더로 사용하도록 수정
                     df_sheet = pd.read_excel(fh, header=SINSEONG_HEADER_ROW, engine=engine_to_use)
                     all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
                     processed_rows['신성미트'] += (len(all_rows) - rows_before)
@@ -255,28 +253,25 @@ def extract_doori(df, 지점명):
     return out
 
 def extract_sinseongmeat(df, 지점명):
-    """(수정) 신성미트 파일에서 A열이 유효한 날짜인 행만 추출합니다."""
     out = []
-    # 데이터는 4행부터 시작 (인덱스 3)
-    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
+    try:
+        date_col, type_col, item_col = '거래일자', '구분', '품목명'
+        amount_col = df.columns[8]  # I열
+        required_cols = [date_col, type_col, item_col]
+        if not all(col in df.columns for col in required_cols):
+            return []
+    except IndexError:
+        return []
+    df_filtered = df[df[type_col].astype(str).str.strip() == '매출'].copy()
+    for _, row in df_filtered.iterrows():
         try:
-            # ✅ 수정: A열(인덱스 0)의 날짜 파싱을 필터링 조건으로 사용
-            날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
-            
-            # 날짜 파싱에 성공하면 나머지 데이터 추출 시도
-            항목2 = str(df.iloc[i, 2]).strip()
-            금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
-
-            if pd.notna(금액) and 금액 > 0 and 항목2:
-                # 요약 행 키워드를 포함하지 않는 경우에만 추가
-                if not any(keyword in 항목2 for keyword in ['[일 계]', '[월계]', '합계', '이월금액']):
-                    out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
-
-        except (ValueError, TypeError, IndexError):
-            # 날짜 변환에 실패하거나(숫자가 아니거나), 다른 열(C, I)에 데이터가 없으면
-            # 해당 행은 데이터 행이 아니므로 건너뜁니다.
+            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
             continue
-            
+        항목2 = str(row[item_col]).strip()
+        금액 = pd.to_numeric(row[amount_col], errors='coerce')
+        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
+            out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
 
 def extract_ourhome(df, 지점명):
@@ -623,6 +618,7 @@ with col_profit_rate1_1:
         st.warning("데이터가 없어 '총 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
         line_total_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='총순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
+        line_total_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['총순수익']])
         line_total_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_total_profit_rate, use_container_width=True)
 with col_profit_rate1_2:
@@ -631,6 +627,7 @@ with col_profit_rate1_2:
         st.warning("데이터가 없어 '홀 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
         line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
+        line_hall_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['홀순수익']])
         line_hall_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_hall_profit_rate, use_container_width=True)
 with col_profit_rate1_3:
@@ -639,6 +636,7 @@ with col_profit_rate1_3:
         st.warning("데이터가 없어 '배달 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
         line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True, color_discrete_map=color_map_지점)
+        line_delivery_profit_rate.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>순수익률: %{y:.2f}%<br>순수익: %{customdata[0]:,.0f}원<extra></extra>", custom_data=[df_profit_analysis_recalc['배달순수익']])
         line_delivery_profit_rate.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_delivery_profit_rate, use_container_width=True)
 
@@ -668,6 +666,7 @@ with col_profit_cost_2:
     else:
         df_profit_analysis_recalc['식자재_원가율'] = (df_profit_analysis_recalc.get('식자재', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
         line_food_cost = px.line(df_profit_analysis_recalc, x='월', y='식자재_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
+        line_food_cost.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
         line_food_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_food_cost, use_container_width=True)
 with col_profit_cost_3:
@@ -677,6 +676,7 @@ with col_profit_cost_3:
     else:
         df_profit_analysis_recalc['인건비_원가율'] = (df_profit_analysis_recalc.get('인건비', 0) / df_profit_analysis_recalc['총매출'].replace(0,1e-9) * 100).fillna(0)
         line_labor_cost = px.line(df_profit_analysis_recalc, x='월', y='인건비_원가율', color='지점명', markers=True, color_discrete_map=color_map_지점)
+        line_labor_cost.update_traces(hovertemplate="지점: %{fullData.name}<br>월: %{x}<br>원가율: %{y:.2f}%<extra></extra>")
         line_labor_cost.update_layout(height=550, legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
@@ -742,10 +742,19 @@ if not df_expense_analysis.empty:
 
     with st.expander("항목별 비용 상세 조정 (선택)"):
         cost_adjustments = {}
-        for item in ['식자재', '소모품', '배달비', '인건비', '광고비', '고정비']:
-            if item in base_costs:
-                cost_adjustments[item] = custom_slider(label=f"{item} 조정률 (%)", min_value=-50.0, max_value=50.0, default_value=0.0, step=0.1, help_text=f"현재 월평균 {item} 비용: {base_costs.get(item, 0):,.0f} 원", key=f"slider_{item}")
-    
+        ordered_cost_items = ['식자재', '소모품', '배달비', '인건비', '광고비', '고정비']
+        for i in range(0, len(ordered_cost_items), 2):
+            col1, col2 = st.columns(2)
+            item1 = ordered_cost_items[i]
+            if item1 in base_costs:
+                with col1:
+                    cost_adjustments[item1] = custom_slider(label=f"{item1} 조정률 (%)", min_value=-50.0, max_value=50.0, default_value=0.0, step=0.1, help_text=f"현재 월평균 {item1} 비용: {base_costs.get(item1, 0):,.0f} 원", key=f"slider_{item1}")
+            if i + 1 < len(ordered_cost_items):
+                item2 = ordered_cost_items[i+1]
+                if item2 in base_costs:
+                    with col2:
+                        cost_adjustments[item2] = custom_slider(label=f"{item2} 조정률 (%)", min_value=-50.0, max_value=50.0, default_value=0.0, step=0.1, help_text=f"현재 월평균 {item2} 비용: {base_costs.get(item2, 0):,.0f} 원", key=f"slider_{item2}")
+
     st.markdown("---")
     royalty_rate = custom_slider(label="👑 로열티 설정 (매출 대비 %)", min_value=0.0, max_value=10.0, default_value=0.0, step=0.1, help_text="전체 예상 매출액 대비 로열티 비율을 설정합니다.", key="royalty_rate")
     st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
