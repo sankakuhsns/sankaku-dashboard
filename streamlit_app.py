@@ -1237,7 +1237,7 @@ else:
     )
 
 ####################################################################################################
-# 📊 시뮬레이션 분석 섹션 (홀매출, 배달+포장매출 분리 로직 적용)
+# 📊 시뮬레이션 분석 섹션 (홀매출 = 홀매출, 배달매출 = 배달 + 포장 / 기존 로직 최소 수정)
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1247,6 +1247,9 @@ display_styled_title_box(
 )
 
 # --- 0. 시뮬레이션 기반 데이터 준비 ---
+def safe_sum(df, col):
+    return df[col].sum() if col in df.columns else 0
+
 if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns and \
    not df_expense_analysis['총매출'].empty and df_expense_analysis['총매출'].sum() > 0:
     num_months = len(선택_월)
@@ -1256,18 +1259,16 @@ if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns 
     divisor_stores = num_stores if num_stores > 0 else 1
 
     base_total_revenue = df_expense_analysis['총매출'].sum() / divisor_months / divisor_stores
-    base_costs = {item: df_expense_analysis[item].sum() / divisor_months / divisor_stores for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
+    base_costs = {item: safe_sum(df_expense_analysis, item) / divisor_months / divisor_stores for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
 
-    # 변경된 비율 계산 (홀매출, 배달+포장매출)
-    base_hall_revenue = df_expense_analysis['홀매출'].sum() / divisor_months / divisor_stores
-    base_delivery_revenue = df_expense_analysis['배달매출'].sum() / divisor_months / divisor_stores
-    base_takeout_revenue = df_expense_analysis['포장매출'].sum() / divisor_months / divisor_stores
+    # ✅ 포장매출을 배달매출에 포함하고, 홀매출에서는 제외
+    base_hall_revenue = safe_sum(df_expense_analysis, '홀매출') / divisor_months / divisor_stores
+    base_delivery_revenue = (safe_sum(df_expense_analysis, '배달매출') + safe_sum(df_expense_analysis, '포장매출')) / divisor_months / divisor_stores
 
     base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
-    base_delivery_ratio = ((base_delivery_revenue + base_takeout_revenue) / base_total_revenue * 100) if base_total_revenue > 0 else 0
 else:
     st.warning("시뮬레이션을 위해 사이드바에서 1개 이상의 '월'과 '지점'을 선택하고, 충분한 매출 데이터가 로드되었는지 확인해주세요. (시뮬레이션 섹션)")
     st.stop()
@@ -1330,12 +1331,13 @@ with info_col2:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-base_delivery_total = base_delivery_revenue + base_takeout_revenue
 sim_hall_revenue = sim_revenue * (sim_hall_ratio_pct / 100)
 sim_delivery_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
 
 live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 1
-live_delivery_revenue_growth = sim_delivery_revenue / base_delivery_total if base_delivery_total > 0 else 1
+live_delivery_revenue_growth = sim_delivery_revenue / base_delivery_revenue if base_delivery_revenue > 0 else 1
+
+# 이후 cost_adjustments, 시뮬레이션 실행, 결과 시각화는 기존 로직 유지 (비율 반영 방식만 위에서 조정됨)
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
