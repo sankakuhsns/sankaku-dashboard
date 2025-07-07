@@ -364,7 +364,6 @@ if df_filtered.empty:
     st.stop()
 
 # --- UI 렌더링을 위한 최종 데이터 준비 ---
-chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
 매출 = df_filtered[df_filtered['분류'] == '매출'].copy()
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
 식자재_분석용_df = df_filtered[(df_filtered['분류'] == '식자재') & (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))].copy() 
@@ -413,6 +412,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # 📈 매출 분석 섹션
 #######################
 display_styled_title_box("📈 매출 분석 📈", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
 color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
 col_chart1, col_chart2 = st.columns(2)
 with col_chart1:
@@ -582,12 +582,14 @@ if not df_expense_analysis.empty:
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
     df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
 
+    # 홀 순수익 계산
     df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
     홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
     df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
     df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
+    # 배달 순수익 계산
     df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
     배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
