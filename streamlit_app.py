@@ -45,21 +45,21 @@ def setup_page():
     )
     st.markdown("""
         <style>
-        /* GitHub 링크가 있는 햄버거 메뉴 숨기기 */
+        /* 이전 코드 (햄버거 메뉴, 푸터, 왕관 숨기기) */
         #MainMenu {visibility: hidden;}
-
-        /* 하단 "Made with Streamlit" 푸터 숨기기 */
         footer {visibility: hidden;}
+        [data-testid="stDecoration"] {display: none !important;}
 
-        /* Streamlit Cloud 배포 왕관 아이콘 숨기기 */
-        [data-testid="stDecoration"] {
-        display: none !important;
+        /* [추가] Fork, GitHub 아이콘이 포함된 상단 툴바 숨기기 */
+        div[data-testid="stToolbar"] {
+            display: none !important;
         }
-
-    /* 문제가 되었던 header 숨김 코드는 여기서 삭제합니다. */
-
         </style>
     """, unsafe_allow_html=True)
+
+    # --- 이하 앱 코드 ---
+    st.title("GitHub 아이콘 테스트")
+    st.write("상단 툴바가 모두 숨겨졌는지 확인하세요.")
 
     
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
