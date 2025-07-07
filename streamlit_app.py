@@ -184,7 +184,7 @@ def load_all_data_from_drive():
 
 def get_data():
     if 'df_all_branches' not in st.session_state or st.session_state.df_all_branches is None:
-        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='�')
+        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='🎉')
         loading_message = "모든 지점의 데이터를 로딩 중입니다..."
         if "all" not in st.session_state.get("allowed_branches", []):
             loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
@@ -251,16 +251,32 @@ def extract_sinseongmeat(df, 지점명):
     out = []
     for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         try:
-            date_cell = df.iloc[i, 0]
-            if pd.isna(date_cell) or '계' in str(date_cell):
+            # 1. 날짜 추출 및 정제
+            date_cell = str(df.iloc[i, 0]).strip()
+            if not date_cell or '계' in date_cell or '이월' in date_cell:
                 continue
-            
-            날짜 = pd.to_datetime(date_cell).strftime('%Y-%m-%d')
-            항목2 = str(df.iloc[i, 2]).strip()
-            금액 = pd.to_numeric(df.iloc[i, 8], errors='coerce')
 
-            if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
-                out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
+            try:
+                날짜 = pd.to_datetime(date_cell, errors='coerce')
+                if pd.isna(날짜):
+                    continue
+                날짜 = 날짜.strftime('%Y-%m-%d')
+            except Exception:
+                continue
+
+            # 2. 항목명 필터링
+            항목2 = str(df.iloc[i, 2]).strip()
+            if not 항목2 or any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
+                continue
+
+            # 3. 금액 정제 (쉼표 제거 후 숫자화)
+            raw_amount = str(df.iloc[i, 8]).replace(",", "").strip()
+            금액 = pd.to_numeric(raw_amount, errors='coerce')
+            if pd.isna(금액) or 금액 <= 0:
+                continue
+
+            # 4. 최종 추가
+            out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
         except (ValueError, TypeError, IndexError):
             continue
     return out
@@ -828,7 +844,7 @@ if not df_expense_analysis.empty:
                     fig_bar_base = px.bar(df_base_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_base.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_base.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_3")
+                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
         with row2_col2:
             display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
             r2_c2_sub1, r2_c2_sub2 = st.columns(2)
@@ -847,6 +863,6 @@ if not df_expense_analysis.empty:
                     fig_bar_sim = px.bar(df_sim_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_sim.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_sim.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_3")
+                    st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
     st.warning("분석을 위한 데이터가 부족하여 시뮬레이션을 실행할 수 없습니다.")
