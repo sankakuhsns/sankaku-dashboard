@@ -1203,7 +1203,7 @@ if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns 
     divisor = num_months * num_stores if num_months * num_stores > 0 else 1
     
     base_total_revenue = df_expense_analysis['총매출'].sum() / divisor
-    base_costs = {item: df_expense_analysis[item].sum() / divisor for item in all_possible_expense_categories_for_analysis if item in df_expense_analysis.columns}
+    base_costs = {item: df_expense_analysis[item].sum() / divisor for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_expense_analysis.columns}
     base_total_cost = sum(base_costs.values())
     base_profit = base_total_revenue - base_total_cost
     base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
@@ -1214,6 +1214,7 @@ if not df_expense_analysis.empty and '총매출' in df_expense_analysis.columns 
     base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
 else:
     st.warning("분석을 위한 데이터가 부족하여 시뮬레이션을 실행할 수 없습니다.")
+    df_expense_analysis = pd.DataFrame() # 이후 오류 방지를 위해 빈 데이터프레임 생성
     st.stop()
 
 # --- 1. 현재 상태 요약 ---
@@ -1260,9 +1261,8 @@ with info_col2:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # 시뮬레이션 매출액 및 성장률 계산
-sim_delivery_takeout_revenue = sim_revenue * (sim_delivery_ratio_pct / 100)
 live_total_revenue_growth = sim_revenue / base_total_revenue if base_total_revenue > 0 else 0
-live_delivery_takeout_revenue_growth = sim_delivery_takeout_revenue / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
+live_delivery_takeout_revenue_growth = (sim_revenue * (sim_delivery_ratio_pct / 100)) / base_delivery_takeout_revenue if base_delivery_takeout_revenue > 0 else 0
 
 with st.expander("항목별 비용 상세 조정 (선택)"):
     cost_adjustments = {}
@@ -1291,8 +1291,6 @@ royalty_rate = custom_slider(
 )
 st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
 st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("""<style>div[data-testid="stButton"] > button { height: 60px; padding: 10px 24px; font-size: 24px; font-weight: bold; }</style>""", unsafe_allow_html=True)
 
 if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     sim_costs = {}
