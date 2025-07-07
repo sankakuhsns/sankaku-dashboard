@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_HEADER_ROW = 2
+SINSEONG_DATA_START_ROW = 3  # 데이터 시작 행 (0-based index)
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="📊",
+        page_icon="�",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -159,7 +159,7 @@ def load_all_data_from_drive():
                     processed_rows['두리축산'] += (len(all_rows) - rows_before)
                 elif "신성미트" in file_path:
                     file_counts['신성미트'] += 1
-                    df_sheet = pd.read_excel(fh, header=SINSEONG_HEADER_ROW, engine=engine_to_use)
+                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
                     all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
                     processed_rows['신성미트'] += (len(all_rows) - rows_before)
                 elif "아워홈" in file_path:
@@ -652,8 +652,8 @@ with col_profit_cost_1:
         fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['총매출'], name='총매출', marker_color=chart_colors_palette[0], text=df_bep_total['총매출']))
         fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['손익분기점_매출'], name='손익분기점 매출', marker_color=chart_colors_palette[1], text=df_bep_total['손익분기점_매출']))
         fig_bep.add_trace(go.Scatter(x=df_bep_total['월'], y=df_bep_total['안전여유매출액'], mode='lines+markers+text', name='안전여유매출액', marker_color=chart_colors_palette[2], line=dict(width=2), text=df_bep_total['안전여유매출액'], textposition="top center"))
-        fig_bep.update_traces(selector=dict(type='bar'), texttemplate='%{text:,.0f}', textangle=0)
-        fig_bep.update_traces(selector=dict(type='scatter'), texttemplate='%{text:,.0f}')
+        fig_bep.update_traces(selector=dict(type='bar'), texttemplate='%{text:,.0f}', textangle=0, hovertemplate="<b>월:</b> %{x}<br><b>%{data.name}:</b> %{y:,.0f}원<extra></extra>")
+        fig_bep.update_traces(selector=dict(type='scatter'), texttemplate='%{text:,.0f}', hovertemplate="<b>월:</b> %{x}<br><b>%{data.name}:</b> %{y:,.0f}원<extra></extra>")
         fig_bep.update_layout(barmode='group', height=550, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis=dict(tickformat=","), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_bep, use_container_width=True)
 with col_profit_cost_2:
@@ -831,7 +831,7 @@ if not df_expense_analysis.empty:
                     fig_bar_base = px.bar(df_base_costs, x='항목', y='금액', text_auto=True, color='항목', color_discrete_map=cost_item_color_map)
                     fig_bar_base.update_traces(texttemplate='%{y:,.0f}', hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>", textangle=0)
                     fig_bar_base.update_layout(height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar")
+                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
         with row2_col2:
             display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
             r2_c2_sub1, r2_c2_sub2 = st.columns(2)
