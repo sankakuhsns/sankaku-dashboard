@@ -406,10 +406,10 @@ else:
     st.error("'날짜' 열을 찾을 수 없어 후처리를 진행할 수 없습니다. 데이터 로딩을 확인해주세요.")
     st.stop()
 
-# --- 5. 사이드바 UI ---
+# --- 5. 사이드바 및 메인 화면 필터링 ---
 with st.sidebar:
     st.title('📊 대시보드')
-    st.info(f"**로그인 계정 :**\n\n{st.session_state.user_name}")
+    st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
     st.markdown("---")
     
     지점목록 = sorted(df['지점명'].unique())
@@ -418,34 +418,22 @@ with st.sidebar:
     선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
     선택_월 = st.multiselect("🗓️ 월 선택", 월목록, default=월목록)
 
-# --- 6. 메인 화면 UI ---
 df_filtered = df[df['지점명'].isin(선택_지점) & df['월'].isin(선택_월)]
 
 if df_filtered.empty:
     st.warning("선택하신 조건에 해당하는 데이터가 없습니다. 필터를 조정해주세요.")
     st.stop()
 
-# --- 데이터 후처리 ---
-df['월'] = df['날짜'].dt.strftime('%y년 %m월')
-df['요일'] = df['날짜'].dt.day_name().map({'Monday': '월요일', 'Tuesday': '화요일', 'Wednesday': '수요일', 'Thursday': '목요일', 'Friday': '금요일', 'Saturday': '토요일', 'Sunday': '일요일'})
-df['항목1'] = df['항목1'].fillna('기타')
-df['항목2'] = df['항목2'].fillna('기타')
+# --- 6. UI 렌더링을 위한 최종 데이터 준비 ---
+# ✅ 불필요하고 중복된 '데이터 후처리' 블록을 삭제하고, 변수 정의와 데이터 분리만 남깁니다.
+# (후처리는 이미 메인 실행 로직 상단에서 완료되었음)
 
 # --- 차트 색상 및 변수 정의 ---
 chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
-매출_항목1_unique = df[df['분류'] == '매출']['항목1'].unique() if not df[df['분류'] == '매출'].empty else []
-color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출_항목1_unique)}
-
-지출_항목1_unique = df[df['분류'] == '지출']['항목1'].unique() if not df[df['분류'] == '지출'].empty else []
-color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(지출_항목1_unique)}
-
-color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for i, month in enumerate(sorted(df['월'].unique()))}
-color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
-
 VARIABLE_COST_ITEMS = ['식자재', '소모품']
 DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS = ['배달비']
 FIXED_COST_ITEMS = ['인건비', '광고비', '고정비']
-all_possible_expense_categories_for_analysis = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS + FIXED_COST_ITEMS))
+ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS + FIXED_COST_ITEMS))
 
 # --- 데이터 분리 ---
 매출 = df_filtered[df_filtered['분류'] == '매출'].copy()
@@ -455,13 +443,9 @@ all_possible_expense_categories_for_analysis = list(set(VARIABLE_COST_ITEMS + DE
     (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))
 ].copy() 
 
-# ------------------ 6. 헤더 및 KPI ------------------
-if not df_filtered.empty and '날짜' in df_filtered.columns:
-    분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
-    분석최대일 = df_filtered['날짜'].max().strftime('%Y-%m-%d')
-else:
-    분석최소일 = "N/A"
-    분석최대일 = "N/A"
+# --- 7. 헤더 및 KPI ---
+분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
+분석최대일 = df_filtered['날짜'].max().strftime('%Y-%m-%d')
 
 st.markdown(f"""
 <div style='text-align: center; margin-bottom: 1rem; padding: 3rem 2rem; border-radius: 12px; background-color: #ffffff; border: 1px solid #cccccc; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
