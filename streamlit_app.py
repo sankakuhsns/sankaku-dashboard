@@ -56,11 +56,6 @@ def setup_page():
         }
         </style>
     """, unsafe_allow_html=True)
-
-    # --- 이하 앱 코드 ---
-    st.title("GitHub 아이콘 테스트")
-    st.write("상단 툴바가 모두 숨겨졌는지 확인하세요.")
-
     
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
