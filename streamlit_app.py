@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="�",
+        page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -249,23 +249,26 @@ def extract_doori(df, 지점명):
 
 def extract_sinseongmeat(df, 지점명):
     out = []
-    try:
-        date_col, type_col, item_col = '거래일자', '구분', '품목명'
-        amount_col = df.columns[8]
-        required_cols = [date_col, type_col, item_col]
-        if not all(col in df.columns for col in required_cols):
-            return []
-    except IndexError:
-        return []
-    df_filtered = df[df[type_col].astype(str).str.strip() == '매출'].copy()
-    for _, row in df_filtered.iterrows():
+    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         try:
-            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
+            date_cell = df.iloc[i, 0]
+            type_cell = df.iloc[i, 1]
+            item_cell = df.iloc[i, 2]
+            amount_cell = df.iloc[i, 8]
+            
+            # A열에 날짜 형식이 아니거나, '계'가 포함된 경우 건너뛰기
+            if pd.isna(pd.to_datetime(date_cell, errors='coerce')) or ('계' in str(date_cell)):
+                continue
+            
+            날짜 = pd.to_datetime(date_cell).strftime('%Y-%m-%d')
+            
+            항목2 = str(item_cell).strip()
+            금액 = pd.to_numeric(amount_cell, errors='coerce')
+
+            if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
+                out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
+        except (ValueError, TypeError, IndexError):
             continue
-        항목2, 금액 = str(row[item_col]).strip(), pd.to_numeric(row[amount_col], errors='coerce')
-        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
-            out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
 
 def extract_ourhome(df, 지점명):
