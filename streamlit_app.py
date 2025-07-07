@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_DATA_START_ROW = 3
+SINSEONG_HEADER_ROW = 2  # 엑셀의 3번째 행을 헤더로 사용
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -160,7 +160,8 @@ def load_all_data_from_drive():
                     processed_rows['두리축산'] += (len(all_rows) - rows_before)
                 elif "신성미트" in file_path:
                     file_counts['신성미트'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    # ✅ 수정: 신성미트 파일은 3행을 헤더로 사용
+                    df_sheet = pd.read_excel(fh, header=SINSEONG_HEADER_ROW, engine=engine_to_use)
                     all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
                     processed_rows['신성미트'] += (len(all_rows) - rows_before)
                 elif "아워홈" in file_path:
@@ -254,12 +255,28 @@ def extract_doori(df, 지점명):
 
 def extract_sinseongmeat(df, 지점명):
     out = []
-    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
-        if str(df.iloc[i, 1]).strip() != '매출': continue
-        try: 날짜 = pd.to_datetime(df.iloc[i, 0]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError): continue
-        항목2, 금액 = str(df.iloc[i, 2]).strip(), pd.to_numeric(df.iloc[i, 8], errors='coerce')
-        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계']):
+    try:
+        # ✅ 수정: 컬럼 이름으로 접근 (헤더를 읽었으므로)
+        date_col = df.columns[0]
+        type_col = df.columns[1]
+        item_col = df.columns[2]
+        amount_col = df.columns[8]
+    except IndexError:
+        st.warning(f"신성미트 파일({지점명})에 필요한 열(A, B, C, I)이 부족합니다.")
+        return []
+
+    for _, row in df.iterrows():
+        if str(row[type_col]).strip() != '매출':
+            continue
+        try:
+            날짜 = pd.to_datetime(row[date_col]).strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
+            continue
+        
+        항목2 = str(row[item_col]).strip()
+        금액 = pd.to_numeric(row[amount_col], errors='coerce')
+
+        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
 
@@ -585,12 +602,14 @@ if not df_expense_analysis.empty:
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
     df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
 
+    # 홀 순수익 계산
     df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
     홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
     df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
     df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
+    # 배달 순수익 계산
     df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
     배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
