@@ -45,13 +45,27 @@ def setup_page():
     )
     st.markdown("""
         <style>
-        /* 이전 코드 (햄버거 메뉴, 푸터, 왕관 숨기기) */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        [data-testid="stDecoration"] {display: none !important;}
+        /* 1. 햄버거 메뉴 숨기기 */
+        #MainMenu {
+            visibility: hidden;
+        }
 
-        /* [추가] Fork, GitHub 아이콘이 포함된 상단 툴바 숨기기 */
-        div[data-testid="stToolbar"] {
+        /* 2. 하단 "Made with Streamlit" 푸터 숨기기 */
+        footer {
+            visibility: hidden;
+        }
+
+        /* 3. Streamlit Cloud 배포 왕관 아이콘 숨기기 */
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
+
+        /* 4. [수정] GitHub 아이콘(View source)과 Fork 버튼 개별적으로 숨기기 */
+        /* stToolbar 자체는 건드리지 않아 슬라이더 오류가 발생하지 않습니다. */
+        a[aria-label="View source"] {
+            display: none !important;
+        }
+        a[aria-label="Fork this app"] {
             display: none !important;
         }
         </style>
