@@ -254,12 +254,11 @@ def extract_doori(df, 지점명):
     return out
 
 def extract_sinseongmeat(df, 지점명):
+    """(수정) '신성미트' 파일에서 식자재 데이터를 추출합니다."""
     out = []
     try:
-        # ✅ 수정: 헤더 이름으로 컬럼에 접근
         date_col, type_col, item_col = '거래일자', '구분', '품목명'
         amount_col = df.columns[8]  # I열
-        
         required_cols = [date_col, type_col, item_col]
         if not all(col in df.columns for col in required_cols):
             return []
