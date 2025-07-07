@@ -49,6 +49,10 @@ def setup_page():
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
+        /* Streamlit Cloud의 특수한 하단 요소도 강제 숨김 */
+        .st-emotion-cache-zq5wmm.ezrtsby0 {display: none;}  /* 최신 버전의 왕관 div */
+        .st-emotion-cache-1v0mbdj {display: none;}          /* 예전 버전 Streamlit 로고 div */
+        .st-emotion-cache-13ln4jf {display: none;}          /* 테마 선택 도구 */
         </style>
     """, unsafe_allow_html=True)
     
