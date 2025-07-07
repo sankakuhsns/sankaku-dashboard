@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_HEADER_ROW = 2  # 엑셀의 3번째 행을 헤더로 사용
+SINSEONG_HEADER_ROW = 2  # 엑셀의 3번째 행(인덱스 2)을 헤더로 사용
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -255,15 +255,18 @@ def extract_doori(df, 지점명):
 
 def extract_sinseongmeat(df, 지점명):
     out = []
+    # ✅ 수정: 헤더를 읽었으므로, 컬럼 이름으로 접근
     try:
-        # ✅ 수정: 컬럼 이름으로 접근 (헤더를 읽었으므로)
-        date_col = df.columns[0]
-        type_col = df.columns[1]
-        item_col = df.columns[2]
-        amount_col = df.columns[8]
+        date_col, type_col, item_col = '거래일자', '구분', '품목명'
+        amount_col = df.columns[8]  # I열
     except IndexError:
         st.warning(f"신성미트 파일({지점명})에 필요한 열(A, B, C, I)이 부족합니다.")
         return []
+    
+    # 필요한 컬럼들이 모두 존재하는지 확인
+    required_cols = [date_col, type_col, item_col]
+    if not all(col in df.columns for col in required_cols):
+        return [] # 필수 컬럼이 없으면 처리 중단
 
     for _, row in df.iterrows():
         if str(row[type_col]).strip() != '매출':
@@ -279,6 +282,7 @@ def extract_sinseongmeat(df, 지점명):
         if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
     return out
+
 
 def extract_ourhome(df, 지점명):
     out, current_date = [], None
