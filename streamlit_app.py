@@ -749,29 +749,25 @@ with col_h_exp2:
     
     df_홀지출_월별_data_list = []
     
-    valid_총매출_for_line_h_series = df_expense_analysis['총매출'].replace(0, 1)
-    홀매출_분석용_비중_series_for_line = (df_expense_analysis['홀_포장_매출_총액'] / valid_총매출_for_line_h_series).fillna(0)
-    홀매출_분석용_비중_series_for_line.replace([float('inf'), -float('inf')], 0, inplace=True)
-
-    # ✅ 수정: '홀매출_총액'을 기준으로 비용 배분
+    # ✅ 수정: '홀_포장_매출_총액' -> '홀매출_총액'을 기준으로 비용 배분
     df_expense_analysis['홀매출_비중_계산용'] = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
 
-    for item in 홀매출_지출_원형_대상_항목:
+    # 앞서 정의된 홀매출 관련 지출 항목 리스트를 재사용
+    for item in 홀매출_지출_원형_대상_항목: 
         if item in df_expense_analysis.columns:
             df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['홀매출_비중_계산용']).sum()).reset_index(name='금액')
             df_홀지출_월별_data_list.append(df_temp.assign(항목1=item))
     
     df_홀지출_월별_data = pd.concat(df_홀지출_월별_data_list, ignore_index=True) if df_홀지출_월별_data_list else pd.DataFrame()
 
-    if df_홀지출_월별_data.empty or df_홀지출_월별_data['금액'].sum() == 0 or df_홀지출_월별_data['금액'].isnull().all():
+    if df_홀지출_월별_data.empty or df_홀지출_월별_data['금액'].sum() == 0:
         st.warning("선택된 필터 조건에 해당하는 홀매출 지출 데이터가 없어 '홀매출 월별 지출' 차트를 표시할 수 없습니다.")
     else:
         line_expense_h2 = px.line(
             df_홀지출_월별_data,
-            x='월', y='금액', color='항목1', markers=True, # 항목1 사용
+            x='월', y='금액', color='항목1', markers=True,
             color_discrete_map={category: color_map_항목1_지출.get(category, chart_colors_palette[0]) for category in df_홀지출_월별_data['항목1'].unique()}
         )
-        # 차트 색상 직접 지정 (추가)
         unique_categories_line_h2 = df_홀지출_월별_data['항목1'].unique()
         color_map_line_h2 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(unique_categories_line_h2)}
         line_expense_h2.for_each_trace(lambda t: t.update(marker_color=color_map_line_h2.get(t.name), line_color=color_map_line_h2.get(t.name)))
