@@ -110,76 +110,80 @@ def show_login_screen():
 
 @st.cache_data(ttl=600)
 def load_all_data_from_drive():
-    credentials = service_account.Credentials.from_service_account_info(st.secrets["google"], scopes=['https://www.googleapis.com/auth/drive.readonly'])
-    drive_service = build('drive', 'v3', credentials=credentials)
-    all_files = list_files_recursive(drive_service, DRIVE_FOLDER_ID)
-    all_rows = []
-    file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
-    processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
+    try:
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["google"], scopes=['https://www.googleapis.com/auth/drive.readonly'])
+        drive_service = build('drive', 'v3', credentials=credentials)
+        all_files = list_files_recursive(drive_service, DRIVE_FOLDER_ID)
+        all_rows = []
+        file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
+        processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
 
-    for file in all_files:
-        file_id, file_name = file['id'], file['name']
-        file_path = file.get('path', file_name)
-        path_parts = [part for part in file_path.split('/') if part]
-        지점명 = path_parts[-2] if len(path_parts) >= 2 else "미분류"
+        for file in all_files:
+            file_id, file_name = file['id'], file['name']
+            file_path = file.get('path', file_name)
+            path_parts = [part for part in file_path.split('/') if part]
+            지점명 = path_parts[-2] if len(path_parts) >= 2 else "미분류"
 
-        try:
-            fh = io.BytesIO()
-            request = drive_service.files().get_media(fileId=file_id)
-            downloader = MediaIoBaseDownload(fh, request)
-            done = False
-            while not done: _, done = downloader.next_chunk()
-            fh.seek(0)
-        except HttpError: continue
+            try:
+                fh = io.BytesIO()
+                request = drive_service.files().get_media(fileId=file_id)
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done: _, done = downloader.next_chunk()
+                fh.seek(0)
+            except HttpError: continue
 
-        engine_to_use = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd' if file_name.lower().endswith('.xls') else None
-        if not engine_to_use:
-            file_counts['기타/미지원'] += 1
-            continue
+            engine_to_use = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd' if file_name.lower().endswith('.xls') else None
+            if not engine_to_use:
+                file_counts['기타/미지원'] += 1
+                continue
 
-        try:
-            rows_before = len(all_rows)
-            if "OKPOS" in file_path:
-                file_counts['OKPOS'] += 1
-                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                all_rows.extend(extract_okpos_table(df_sheet, 지점명))
-                processed_rows['OKPOS'] += (len(all_rows) - rows_before)
-            elif "정산표" in file_path:
-                file_counts['정산표'] += 1
-                xls = pd.ExcelFile(fh, engine=engine_to_use)
-                for sheet_name in xls.sheet_names:
-                    df_sheet = xls.parse(sheet_name, header=None)
-                    all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
-                    all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
-                processed_rows['정산표'] += (len(all_rows) - rows_before)
-            elif "두리축산" in file_path:
-                file_counts['두리축산'] += 1
-                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                all_rows.extend(extract_doori(df_sheet, 지점명))
-                processed_rows['두리축산'] += (len(all_rows) - rows_before)
-            elif "신성미트" in file_path:
-                file_counts['신성미트'] += 1
-                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
-                processed_rows['신성미트'] += (len(all_rows) - rows_before)
-            elif "아워홈" in file_path:
-                file_counts['아워홈'] += 1
-                df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                all_rows.extend(extract_ourhome(df_sheet, 지점명))
-                processed_rows['아워홈'] += (len(all_rows) - rows_before)
-        except Exception as e:
-            st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
-    
-    if not all_rows: return pd.DataFrame(), {}, {}
-    
-    df_통합 = pd.DataFrame(all_rows, columns=['날짜', '지점명', '분류', '항목1', '항목2', '금액'])
-    df_통합['금액'] = pd.to_numeric(df_통합['금액'], errors='coerce')
-    df_통합.dropna(subset=['금액', '날짜'], inplace=True)
-    df_통합['날짜'] = pd.to_datetime(df_통합['날짜'], errors='coerce')
-    df_통합.dropna(subset=['날짜'], inplace=True)
-    df_통합 = df_통합[df_통합['금액'] > 0].copy()
-    
-    return df_통합, file_counts, processed_rows
+            try:
+                rows_before = len(all_rows)
+                if "OKPOS" in file_path:
+                    file_counts['OKPOS'] += 1
+                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    all_rows.extend(extract_okpos_table(df_sheet, 지점명))
+                    processed_rows['OKPOS'] += (len(all_rows) - rows_before)
+                elif "정산표" in file_path:
+                    file_counts['정산표'] += 1
+                    xls = pd.ExcelFile(fh, engine=engine_to_use)
+                    for sheet_name in xls.sheet_names:
+                        df_sheet = xls.parse(sheet_name, header=None)
+                        all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
+                        all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
+                    processed_rows['정산표'] += (len(all_rows) - rows_before)
+                elif "두리축산" in file_path:
+                    file_counts['두리축산'] += 1
+                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    all_rows.extend(extract_doori(df_sheet, 지점명))
+                    processed_rows['두리축산'] += (len(all_rows) - rows_before)
+                elif "신성미트" in file_path:
+                    file_counts['신성미트'] += 1
+                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
+                    processed_rows['신성미트'] += (len(all_rows) - rows_before)
+                elif "아워홈" in file_path:
+                    file_counts['아워홈'] += 1
+                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
+                    all_rows.extend(extract_ourhome(df_sheet, 지점명))
+                    processed_rows['아워홈'] += (len(all_rows) - rows_before)
+            except Exception as e:
+                st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
+        
+        if not all_rows: return pd.DataFrame(), {}, {}
+        
+        df_통합 = pd.DataFrame(all_rows, columns=['날짜', '지점명', '분류', '항목1', '항목2', '금액'])
+        df_통합['금액'] = pd.to_numeric(df_통합['금액'], errors='coerce')
+        df_통합.dropna(subset=['금액', '날짜'], inplace=True)
+        df_통합['날짜'] = pd.to_datetime(df_통합['날짜'], errors='coerce')
+        df_통합.dropna(subset=['날짜'], inplace=True)
+        df_통합 = df_통합[df_통합['금액'] > 0].copy()
+        
+        return df_통합, file_counts, processed_rows
+    except Exception as e:
+        st.error(f"Google Drive 데이터 로딩 중 심각한 오류가 발생했습니다: {e}")
+        return pd.DataFrame(), {}, {}
 
 def get_data():
     if 'df_all_branches' not in st.session_state or st.session_state.df_all_branches is None:
@@ -581,14 +585,12 @@ if not df_expense_analysis.empty:
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
     df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
 
-    # 홀 순수익 계산
     df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
     홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
     df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
     df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
-    # 배달 순수익 계산
     df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
     배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
     배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
