@@ -43,6 +43,15 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    # ✅ CSS 삽입으로 메뉴 숨기기
+    st.markdown("""
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
     <style>
