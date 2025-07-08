@@ -43,33 +43,22 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-    st.markdown("""
+     st.markdown("""
         <style>
-        /* 1. 햄버거 메뉴 숨기기 */
-        #MainMenu {
+        /* 1. 기본 UI 요소들 숨기기 */
+        #MainMenu, footer, [data-testid="stDecoration"] {
             visibility: hidden;
-        }
-
-        /* 2. 하단 "Made with Streamlit" 푸터 숨기기 */
-        footer {
-            visibility: hidden;
-        }
-
-        /* 3. Streamlit Cloud 배포 왕관 아이콘 숨기기 */
-        [data-testid="stDecoration"] {
             display: none !important;
         }
 
-        /* 4. [수정] GitHub 아이콘(View source)과 Fork 버튼 개별적으로 숨기기 */
-        /* stToolbar 자체는 건드리지 않아 슬라이더 오류가 발생하지 않습니다. */
-        a[aria-label="View source"] {
-            display: none !important;
-        }
-        a[aria-label="Fork this app"] {
+        /* 2. [최종 수정] 상단 툴바에서 'github.com'을 포함하는 모든 링크 숨기기 */
+        /* 이 방법으로 GitHub 아이콘, Fork 버튼 등을 모두 확실하게 제거합니다. */
+        div[data-testid="stToolbar"] a[href*="github.com"] {
             display: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
+
     
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
