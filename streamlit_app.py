@@ -421,18 +421,44 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
         st.dataframe(pd.DataFrame.from_dict(processed_rows, orient='index', columns=['행 수']))
 
 st.markdown("---")
-display_styled_title_box("🔸 정보 요약 🔸", font_size="32px", padding_y="15px")
-매출합계 = 매출['금액'].sum()
-지출합계 = 지출['금액'].sum()
-순수익 = 매출합계 - 지출합계
-순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
-col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-col_kpi1.metric("전체 매출", f"{매출합계:,.0f} 원")
-col_kpi2.metric("전체 지출", f"{지출합계:,.0f} 원")
-col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
-col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
+# --- [수정] 전체 요약 섹션을 위한 CSS 스타일 ---
+st.markdown("""
+<style>
+.summary-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 25px;
+    background-color: #fafafa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+div[data-testid="stMetric"] {
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- [수정] 정보 요약 섹션 ---
+with st.container():
+    st.markdown('<div class="summary-container">', unsafe_allow_html=True)
+
+    st.markdown("<h2 style='text-align: center; font-size: 28px;'>🔸 정보 요약 🔸</h2>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    매출합계 = 매출['금액'].sum()
+    지출합계 = 지출['금액'].sum()
+    순수익 = 매출합계 - 지출합계
+    순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
+
+    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+    col_kpi1.metric("전체 매출", f"{매출합계:,.0f} 원")
+    col_kpi2.metric("전체 지출", f"{지출합계:,.0f} 원")
+    col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
+    col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown("---")
-st.markdown("<br>", unsafe_allow_html=True)
 
 #######################
 # 📈 매출 분석 섹션
