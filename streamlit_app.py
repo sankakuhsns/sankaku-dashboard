@@ -180,7 +180,7 @@ def load_all_data_from_drive():
 
 def get_data():
     if 'df_all_branches' not in st.session_state or st.session_state.df_all_branches is None:
-        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='�')
+        st.toast(f'{st.session_state.get("user_name", "사용자")}님, 환영합니다!', icon='🎉')
         loading_message = "모든 지점의 데이터를 로딩 중입니다..."
         if "all" not in st.session_state.get("allowed_branches", []):
             loading_message = f'{", ".join(st.session_state.allowed_branches)} 지점의 데이터를 로딩 중입니다...'
