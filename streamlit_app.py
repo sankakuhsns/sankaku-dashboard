@@ -479,12 +479,12 @@ with col_chart2:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '매출 항목 월별 트렌드' 차트를 표시할 수 없습니다.")
     else:
-        line_data = 매출.groupby(['월','항목1'])['금액'].sum().reset_index()
-        # ✅ [수정] color_map_항목1_매출 변수를 사용하도록 수정
+        line_data = 매출.groupby(['월', '항목1'])['금액'].sum().reset_index()
         line = px.line(line_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
         line.update_traces(text=line_data['금액'].apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
-        line.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(line, use_container_width=True)
+        line.update_layout(height=550, dragmode=False, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(line, use_container_width=True, config={"staticPlot": True, "displayModeBar": False, "scrollZoom": False})
+
 
 st.markdown("---")
 col_chart3, col_chart4, col_chart5 = st.columns(3)
