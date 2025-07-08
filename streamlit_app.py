@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="📊",
+        page_icon="�",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -390,7 +390,7 @@ st.markdown(f"""
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     padding: 25px;
-    background-color: #fafafa;
+    background-color: #fafafa; /* 큰 박스 배경색 */
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }}
@@ -399,6 +399,16 @@ st.markdown(f"""
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     text-align: center;
+}}
+.kpi-card {{
+    background-color: #ffffff; /* 4개 작은 박스 배경색 (더 연하게) */
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e8e8e8;
+    transition: box-shadow 0.3s ease;
+}}
+.kpi-card:hover {{
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }}
 .kpi-card .kpi-label {{
     font-size: 1rem;
