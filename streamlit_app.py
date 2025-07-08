@@ -360,7 +360,7 @@ color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for 
 color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
 color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] for i, branch in enumerate(sorted(df['지점명'].unique()))}
 
-# --- 헤더 및 KPI ---
+# --- 헤더 및 분석 기간 표시 ---
 분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
 분석최대일 = df_filtered['날짜'].max().strftime('%Y-%m-%d')
 
@@ -377,44 +377,62 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ✅ [수정] 정보 요약 섹션을 이곳으로 이동하고, 스타일 적용
+# ✅ [최종 수정] 정보 요약 섹션을 HTML/CSS로 직접 렌더링하여 안정성 확보
 # --------------------------------------------------------------------------
-# 1. 정보 요약 섹션을 위한 CSS 스타일 정의
-st.markdown("""
+매출합계 = 매출['금액'].sum()
+지출합계 = 지출['금액'].sum()
+순수익 = 매출합계 - 지출합계
+순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
+
+st.markdown(f"""
 <style>
-.summary-container {
+.summary-container {{
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     padding: 25px;
     background-color: #fafafa;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     margin-bottom: 20px;
-}
-div[data-testid="stMetric"] {
+}}
+.kpi-grid {{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
     text-align: center;
-}
+}}
+.kpi-card .kpi-label {{
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 8px;
+}}
+.kpi-card .kpi-value {{
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #111;
+}}
 </style>
+<div class="summary-container">
+    <h2 style='text-align: center; font-size: 28px; margin-bottom: 25px;'>🔸 정보 요약 🔸</h2>
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">전체 매출</div>
+            <div class="kpi-value">{매출합계:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">전체 지출</div>
+            <div class="kpi-value">{지출합계:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">순수익</div>
+            <div class="kpi-value">{순수익:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">순수익률</div>
+            <div class="kpi-value">{순수익률:.2f}%</div>
+        </div>
+    </div>
+</div>
 """, unsafe_allow_html=True)
-
-# 2. 정보 요약 섹션을 박스 안에 렌더링
-with st.container():
-    st.markdown('<div class="summary-container">', unsafe_allow_html=True)
-
-    st.markdown("<h2 style='text-align: center; font-size: 28px;'>🔸 정보 요약 🔸</h2>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    매출합계 = 매출['금액'].sum()
-    지출합계 = 지출['금액'].sum()
-    순수익 = 매출합계 - 지출합계
-    순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
-
-    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-    col_kpi1.metric("전체 매출", f"{매출합계:,.0f} 원")
-    col_kpi2.metric("전체 지출", f"{지출합계:,.0f} 원")
-    col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
-    col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 # --------------------------------------------------------------------------
 
 with st.expander("🗂️ 파일 처리 요약 보기"):
@@ -427,6 +445,7 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
         st.dataframe(pd.DataFrame.from_dict(processed_rows, orient='index', columns=['행 수']))
 
 st.markdown("---")
+
 
 #######################
 # 📈 매출 분석 섹션
