@@ -320,7 +320,7 @@ st.markdown("""
 
     .nav-button {
         display: block;
-        padding: 4px 0;             /* 변경: 상하 여백 줄임 (줄간격 축소) */
+        padding: 2px 0;             /* 변경: 상하 여백 줄임 (줄간격 축소) */
         color: #333 !important;
         text-decoration: none;
         margin-bottom: 1px;         /* 변경: 링크간 간격 최소화 */
