@@ -45,7 +45,6 @@ def setup_page():
     )
     import streamlit as st
 
-def setup_page():
     st.markdown("""
     <style>
     /* 하단 푸터와 Streamlit Cloud 왕관 아이콘 숨기기 */
@@ -61,8 +60,6 @@ def setup_page():
     }
     </style>
     """, unsafe_allow_html=True)
-
-
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
