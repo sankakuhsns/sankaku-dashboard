@@ -422,7 +422,7 @@ st.markdown(f"""
 }}
 </style>
 <div class="summary-container">
-    <h2 style='text-align: center; font-size: 28px; margin-bottom: 25px;'>🔸 정보 요약 🔸</h2>
+    <h2 style='text-align: center; font-size: 32px; margin-bottom: 20px;'>🔸 정보 요약 🔸</h2>
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-label">전체 매출</div>
