@@ -45,6 +45,7 @@ def setup_page():
     )
     import streamlit as st
 
+def setup_page():
     st.markdown("""
     <style>
     /* 하단 푸터와 Streamlit Cloud 왕관 아이콘 숨기기 */
@@ -54,9 +55,8 @@ def setup_page():
     }
 
     /* GitHub 및 Fork 버튼 숨기기 */
-    a[title="View source"],   /* GitHub 고양이 아이콘 */
-    a[title="Fork this app"]  /* Fork 버튼 */
-    {
+    a[title="View source"],
+    a[title="Fork this app"] {
         display: none !important;
     }
     </style>
