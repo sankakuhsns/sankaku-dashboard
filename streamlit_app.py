@@ -12,34 +12,38 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
 
-# ✅ 반드시 최상단에서 직접 호출해야 함
-st.set_page_config(
-    page_title="Sankaku Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# ==============================================================================  
+# ==============================================================================
 #      1. 설정 상수 정의
 # ==============================================================================
-
+# --- Google Drive 설정 ---
 DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 
+# --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_DATA_START_ROW = 3
+SINSEONG_DATA_START_ROW = 3  # 데이터 시작 행 (0-based index)
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
+# --- 분석용 카테고리 정의 ---
 VARIABLE_COST_ITEMS = ['식자재', '소모품']
 DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS = ['배달비']
 FIXED_COST_ITEMS = ['인건비', '광고비', '고정비']
 ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS + FIXED_COST_ITEMS))
 
-# ==============================================================================  
-#      2. UI 설정 함수들
 # ==============================================================================
+#      2. 모든 함수 정의
+# ==============================================================================
+
+# ------------------ UI 헬퍼 함수들 ------------------
+def setup_page():
+    st.set_page_config(
+        page_title="Sankaku Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    import streamlit as st
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
@@ -49,23 +53,34 @@ def display_styled_title_box(title_text, **kwargs):
     """, unsafe_allow_html=True)
 
 def custom_slider(label, min_value, max_value, default_value, step, help_text, key, format_str="%.1f"):
+    """
+    st.session_state를 사용해 슬라이더와 숫자 입력이 항상 동기화되도록 개선된 함수.
+    숫자 입력 칸은 +/- 버튼을 기본으로 포함합니다.
+    """
+    # session_state에 값이 없으면 default_value로 초기화
     if key not in st.session_state:
         st.session_state[key] = default_value
 
+    # UI 레이아웃
     c1, c2 = st.columns([0.7, 0.3])
+
+    # 슬라이더 값 변경 처리
     with c1:
         slider_val = st.slider(label, min_value, max_value, st.session_state[key], step, help=help_text, key=f"{key}_slider")
+        # 슬라이더를 움직이면 state 업데이트
         if slider_val != st.session_state[key]:
             st.session_state[key] = slider_val
             st.rerun()
+
+    # 숫자 입력 값 변경 처리
     with c2:
         number_val = st.number_input(" ", min_value, max_value, st.session_state[key], step, label_visibility="collapsed", key=f"{key}_num", format=format_str)
+        # 숫자 칸 값을 바꾸면 state 업데이트
         if number_val != st.session_state[key]:
             st.session_state[key] = number_val
             st.rerun()
 
     return st.session_state[key]
-
 # ------------------ 로그인 및 데이터 로딩 함수들 ------------------
 
 def authenticate(password):
