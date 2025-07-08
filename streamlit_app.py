@@ -377,13 +377,20 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ✅ [최종 수정] 정보 요약 섹션을 HTML/CSS로 직접 렌더링하여 안정성 확보
+# --------------------------------------------------------------------------
+매출합계 = 매출['금액'].sum()
+지출합계 = 지출['금액'].sum()
+순수익 = 매출합계 - 지출합계
+순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
+
 st.markdown(f"""
 <style>
 .summary-container {{
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     padding: 25px;
-    background-color: #fafafa;
+    background-color: #fafafa; /* 큰 박스 배경색 */
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }}
@@ -394,7 +401,7 @@ st.markdown(f"""
     text-align: center;
 }}
 .kpi-card {{
-    background-color: #ffffff;
+    background-color: #ffffff; /* 4개 작은 박스 배경색 (더 연하게) */
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #e8e8e8;
@@ -413,26 +420,26 @@ st.markdown(f"""
     font-weight: 600;
     color: #111;
 }}
-
-/* ✅ 모바일 대응: 세로 정렬 또는 2열 */
-@media screen and (max-width: 768px) {{
-    .kpi-grid {{
-        grid-template-columns: repeat(2, 1fr);
-    }}
-}}
-@media screen and (max-width: 480px) {{
-    .kpi-grid {{
-        grid-template-columns: 1fr;
-    }}
-}}
 </style>
 <div class="summary-container">
-    <h2 style='text-align: center; font-size: 28px; margin-bottom: 20px;'>🔸 정보 요약 🔸</h2>
+    <h2 style='text-align: center; font-size: 32px; margin-bottom: 20px;'>🔸 정보 요약 🔸</h2>
     <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">전체 매출</div><div class="kpi-value">{매출합계:,.0f} 원</div></div>
-        <div class="kpi-card"><div class="kpi-label">전체 지출</div><div class="kpi-value">{지출합계:,.0f} 원</div></div>
-        <div class="kpi-card"><div class="kpi-label">순수익</div><div class="kpi-value">{순수익:,.0f} 원</div></div>
-        <div class="kpi-card"><div class="kpi-label">순수익률</div><div class="kpi-value">{순수익률:.2f}%</div></div>
+        <div class="kpi-card">
+            <div class="kpi-label">전체 매출</div>
+            <div class="kpi-value">{매출합계:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">전체 지출</div>
+            <div class="kpi-value">{지출합계:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">순수익</div>
+            <div class="kpi-value">{순수익:,.0f} 원</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">순수익률</div>
+            <div class="kpi-value">{순수익률:.2f}%</div>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
