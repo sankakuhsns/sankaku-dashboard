@@ -318,11 +318,12 @@ st.markdown("""
         padding: 10px;
         background-color: #f0f2f6;
         color: #333 !important;
-        text-align: center;
+        text-align: left;
         border-radius: 5px;
         text-decoration: none;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
         font-weight: bold;
+        font-size: 0.9rem; 
         transition: background-color 0.3s, box-shadow 0.3s;
     }
     .nav-button:hover {
