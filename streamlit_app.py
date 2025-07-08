@@ -375,6 +375,7 @@ with st.sidebar:
     
     st.markdown("""
     <h4>지점/기간 선택</h4>
+    """, unsafe_allow_html=True)
     지점목록 = sorted(df['지점명'].unique())
     월목록 = sorted(df['월'].unique(), reverse=True)
     
