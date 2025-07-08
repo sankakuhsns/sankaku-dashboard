@@ -370,10 +370,9 @@ with st.sidebar:
     <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a>
     <a class="nav-button" href="#simulation-analysis">📊 시뮬레이션 분석</a>
     """, unsafe_allow_html=True)
-
+    
     st.markdown("---")
-
-    st.write("슬라이더")
+    
     지점목록 = sorted(df['지점명'].unique())
     월목록 = sorted(df['월'].unique(), reverse=True)
     
