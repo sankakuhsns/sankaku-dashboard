@@ -309,6 +309,30 @@ def extract_from_sheet(df, sheetname, 지점명):
 
 setup_page()
 
+# ✅ [수정] 내비게이션 버튼 스타일을 이곳에 전역으로 정의합니다.
+st.markdown("""
+<style>
+.nav-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #f0f2f6;
+    color: #333 !important;
+    text-align: center;
+    border-radius: 5px;
+    text-decoration: none;
+    margin-bottom: 8px;
+    font-weight: bold;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+.nav-button:hover {
+    background-color: #e0e2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-decoration: none;
+}
+</style>
+""", unsafe_allow_html=True)
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if not st.session_state.authenticated:
