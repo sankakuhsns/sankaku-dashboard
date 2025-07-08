@@ -43,34 +43,31 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    import streamlit as st
+
     st.markdown("""
     <style>
-    /* 햄버거 메뉴, 푸터, 배포 왕관 아이콘 숨기기 */
-    #MainMenu,
-    footer,
-    [data-testid="stDecoration"] {
-        display: none !important;
+    /* 햄버거 메뉴와 푸터 숨기기 */
+    #MainMenu, footer {
+        visibility: hidden;
     }
 
-    /* GitHub 아이콘 숨기기 (직접 확인한 정확한 선택자) */
-    a[title="View source"] {
-        display: none !important;
+    /* 상단 툴바 전체를 보이지 않게 처리 (가장 확실한 방법) */
+    div[data-testid="stToolbar"] {
+        visibility: hidden;
+        height: 0%;
+        position: fixed;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
-    st.markdown("""
-    <style>
-    html, body, [data-testid="stApp"] { background-color: #f0f0f0 !important; }
-    [data-testid="block-container"] { padding: 1rem 2rem 0rem; margin-bottom: -7rem; background-color: #ffffff !important; border-radius: 12px; box-shadow: 0 0 8px rgba(0, 0, 0, 0.05); }
-    [data-testid="stMetric"] { background-color: #ffffff; text-align: center; padding: 15px 0; border-radius: 10px; color: #333333; border: 1px solid #cccccc; box-shadow: 1px 1px 4px rgba(0,0,0,0.05); }
-    div[data-testid="stMultiSelect"] div[data-baseweb="tag"] { background-color: #e0e0e0 !important; border-color: #b0b0b0 !important; color: #333333 !important; }
-    .center-login { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .info-box { background-color: #f0f2f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid #e6e6e6; }
-    [data-testid="stMetricLabel"] { display: flex; justify-content: center; }
-    </style>
-    """, unsafe_allow_html=True)
+
+# --- 이하 앱 코드 ---
+st.title("최종 해결 테스트")
+st.write("이제 아이콘이 보이지 않고 슬라이더는 정상 작동할 것입니다.")
+
+with st.expander("슬라이더를 열어보세요"):
+    st.slider("슬라이더", 0, 100)
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
