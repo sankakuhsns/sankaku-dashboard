@@ -21,7 +21,7 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
 DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_DATA_START_ROW = 3  # 데이터 시작 행 (0-based index)
+SINSEONG_DATA_START_ROW = 3
 OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
@@ -52,27 +52,19 @@ def display_styled_title_box(title_text, **kwargs):
     """, unsafe_allow_html=True)
 
 def custom_slider(label, min_value, max_value, default_value, step, help_text, key, format_str="%.1f"):
-    """
-    st.session_state를 사용해 슬라이더와 숫자 입력이 항상 동기화되도록 개선된 함수.
-    숫자 입력 칸은 +/- 버튼을 기본으로 포함합니다.
-    """
     if key not in st.session_state:
         st.session_state[key] = default_value
-
     c1, c2 = st.columns([0.7, 0.3])
-
     with c1:
         slider_val = st.slider(label, min_value, max_value, st.session_state[key], step, help=help_text, key=f"{key}_slider")
         if slider_val != st.session_state[key]:
             st.session_state[key] = slider_val
             st.rerun()
-
     with c2:
         number_val = st.number_input(" ", min_value, max_value, st.session_state[key], step, label_visibility="collapsed", key=f"{key}_num", format=format_str)
         if number_val != st.session_state[key]:
             st.session_state[key] = number_val
             st.rerun()
-
     return st.session_state[key]
 
 # ------------------ 로그인 및 데이터 로딩 함수들 ------------------
@@ -110,13 +102,11 @@ def load_all_data_from_drive():
         all_rows = []
         file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
         processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
-
         for file in all_files:
             file_id, file_name = file['id'], file['name']
             file_path = file.get('path', file_name)
             path_parts = [part for part in file_path.split('/') if part]
             지점명 = path_parts[-2] if len(path_parts) >= 2 else "미분류"
-
             try:
                 fh = io.BytesIO()
                 request = drive_service.files().get_media(fileId=file_id)
@@ -124,14 +114,11 @@ def load_all_data_from_drive():
                 done = False
                 while not done: _, done = downloader.next_chunk()
                 fh.seek(0)
-            except HttpError:
-                continue
-
+            except HttpError: continue
             engine_to_use = 'openpyxl' if file_name.lower().endswith('.xlsx') else 'xlrd' if file_name.lower().endswith('.xls') else None
             if not engine_to_use:
                 file_counts['기타/미지원'] += 1
                 continue
-
             try:
                 rows_before = len(all_rows)
                 if "OKPOS" in file_path:
@@ -164,10 +151,7 @@ def load_all_data_from_drive():
                     processed_rows['아워홈'] += (len(all_rows) - rows_before)
             except Exception as e:
                 st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
-        
-        if not all_rows:
-            return pd.DataFrame(), {}, {}
-        
+        if not all_rows: return pd.DataFrame(), {}, {}
         df_통합 = pd.DataFrame(all_rows, columns=['날짜', '지점명', '분류', '항목1', '항목2', '금액'])
         df_통합['금액'] = pd.to_numeric(df_통합['금액'], errors='coerce')
         df_통합.dropna(subset=['금액', '날짜'], inplace=True)
@@ -190,7 +174,7 @@ def get_data():
         st.rerun()
     return st.session_state.df_all_branches, st.session_state.file_counts, st.session_state.processed_rows
 
-# ------------------ 데이터 추출 헬퍼 함수들 ------------------
+# ------------------ 데이터 추출 헬퍼 함수들 (이하 생략 - 원본과 동일) ------------------
 def list_files_recursive(service, folder_id, path_prefix=""):
     files = []
     try:
@@ -209,44 +193,35 @@ def list_files_recursive(service, folder_id, path_prefix=""):
 
 def sheetname_to_date(sheetname):
     match = re.match(r"(\d{2})[.\-](\d{1,2})", sheetname)
-    if match:
-        return f"20{match.group(1)}-{match.group(2).zfill(2)}-01"
+    if match: return f"20{match.group(1)}-{match.group(2).zfill(2)}-01"
     return ""
 
 def extract_okpos_table(df, 지점명):
     out = []
     for i in range(OKPOS_DATA_START_ROW, df.shape[0]):
         date_cell = df.iloc[i, OKPOS_COL_DATE]
-        if pd.isna(date_cell) or str(date_cell).strip() == '' or '합계' in str(date_cell):
-            break
+        if pd.isna(date_cell) or str(date_cell).strip() == '' or '합계' in str(date_cell): break
         try:
             if isinstance(date_cell, (int, float)):
                 날짜 = (pd.to_datetime('1899-12-30') + pd.to_timedelta(date_cell, 'D')).strftime('%Y-%m-%d')
             else:
                 날짜 = pd.to_datetime(str(date_cell).replace("소계:", "").strip()).strftime('%Y-%m-%d')
-        except Exception:
-            continue
+        except Exception: continue
         요일_str = str(df.iloc[i, OKPOS_COL_DAY_OF_WEEK]).strip() + "요일"
         홀매출 = pd.to_numeric(df.iloc[i, OKPOS_COL_DINE_IN_SALES], errors='coerce')
         포장매출 = pd.to_numeric(df.iloc[i, OKPOS_COL_TAKEOUT_SALES], errors='coerce')
         배달매출 = pd.to_numeric(df.iloc[i, OKPOS_COL_DELIVERY_SALES], errors='coerce')
-        if pd.notna(홀매출) and 홀매출 > 0:
-            out.append([날짜, 지점명, '매출', '홀매출', 요일_str, 홀매출])
-        if pd.notna(포장매출) and 포장매출 > 0:
-            out.append([날짜, 지점명, '매출', '포장매출', 요일_str, 포장매출])
-        if pd.notna(배달매출) and 배달매출 > 0:
-            out.append([날짜, 지점명, '매출', '배달매출', 요일_str, 배달매출])
+        if pd.notna(홀매출) and 홀매출 > 0: out.append([날짜, 지점명, '매출', '홀매출', 요일_str, 홀매출])
+        if pd.notna(포장매출) and 포장매출 > 0: out.append([날짜, 지점명, '매출', '포장매출', 요일_str, 포장매출])
+        if pd.notna(배달매출) and 배달매출 > 0: out.append([날짜, 지점명, '매출', '배달매출', 요일_str, 배달매출])
     return out
 
 def extract_doori(df, 지점명):
     out = []
     for i in range(DOORI_DATA_START_ROW, df.shape[0]):
-        if pd.isna(df.iloc[i, 0]) or str(df.iloc[i, 0]).strip() == '':
-            break
-        try:
-            날짜 = pd.to_datetime(df.iloc[i, DOORI_COL_DATE]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
-            continue
+        if pd.isna(df.iloc[i, 0]) or str(df.iloc[i, 0]).strip() == '': break
+        try: 날짜 = pd.to_datetime(df.iloc[i, DOORI_COL_DATE]).strftime('%Y-%m-%d')
+        except (ValueError, TypeError): continue
         항목2, 금액 = str(df.iloc[i, DOORI_COL_ITEM]).strip(), pd.to_numeric(df.iloc[i, DOORI_COL_AMOUNT], errors='coerce')
         if pd.notna(금액) and 금액 > 0 and 항목2:
             out.append([날짜, 지점명, '식자재', '두리축산', 항목2, 금액])
@@ -257,40 +232,30 @@ def extract_sinseongmeat(df, 지점명):
     for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
         try:
             date_cell = str(df.iloc[i, 0]).strip()
-            if not date_cell or '계' in date_cell or '이월' in date_cell:
-                continue
+            if not date_cell or '계' in date_cell or '이월' in date_cell: continue
             try:
                 날짜 = pd.to_datetime(date_cell, errors='coerce')
-                if pd.isna(날짜):
-                    continue
+                if pd.isna(날짜): continue
                 날짜 = 날짜.strftime('%Y-%m-%d')
-            except Exception:
-                continue
+            except Exception: continue
             항목2 = str(df.iloc[i, 2]).strip()
-            if not 항목2 or any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']):
-                continue
+            if not 항목2 or any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']): continue
             raw_amount = str(df.iloc[i, 8]).replace(",", "").strip()
             금액 = pd.to_numeric(raw_amount, errors='coerce')
-            if pd.isna(금액) or 금액 <= 0:
-                continue
+            if pd.isna(금액) or 금액 <= 0: continue
             out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
-        except (ValueError, TypeError, IndexError):
-            continue
+        except (ValueError, TypeError, IndexError): continue
     return out
 
 def extract_ourhome(df, 지점명):
     out, current_date = [], None
     for i in range(OURHOME_DATA_START_ROW, df.shape[0]):
-        if len(df.columns) <= OURHOME_FILTER_COL or pd.isna(df.iloc[i, OURHOME_FILTER_COL]) or '아워홈' not in str(df.iloc[i, OURHOME_FILTER_COL]):
-            continue
+        if len(df.columns) <= OURHOME_FILTER_COL or pd.isna(df.iloc[i, OURHOME_FILTER_COL]) or '아워홈' not in str(df.iloc[i, OURHOME_FILTER_COL]): continue
         raw_date_cell = df.iloc[i, OURHOME_COL_DATE]
         if pd.notna(raw_date_cell):
-            try:
-                current_date = pd.to_datetime(str(raw_date_cell), format='%Y%m%d').strftime('%Y-%m-%d')
-            except (ValueError, TypeError):
-                pass
-        if not current_date:
-            continue
+            try: current_date = pd.to_datetime(str(raw_date_cell), format='%Y%m%d').strftime('%Y-%m-%d')
+            except (ValueError, TypeError): pass
+        if not current_date: continue
         항목2, 금액 = str(df.iloc[i, OURHOME_COL_ITEM]).strip(), pd.to_numeric(df.iloc[i, OURHOME_COL_AMOUNT], errors='coerce')
         if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['소계', '합계', '총매입액']):
             out.append([current_date, 지점명, '식자재', '아워홈', 항목2, 금액])
@@ -298,18 +263,15 @@ def extract_ourhome(df, 지점명):
 
 def extract_kim_myeon_dashima(df, sheetname, 지점명):
     날짜 = sheetname_to_date(sheetname)
-    if not 날짜:
-        return []
+    if not 날짜: return []
     out = []
     for i in range(SETTLEMENT_DATA_START_ROW, df.shape[0]):
         item_cell, amount_cell = df.iloc[i, SETTLEMENT_COL_FOOD_ITEM], df.iloc[i, SETTLEMENT_COL_FOOD_AMOUNT]
         if pd.isna(item_cell) or pd.isna(amount_cell):
-            if pd.isna(item_cell) and pd.isna(amount_cell):
-                break
+            if pd.isna(item_cell) and pd.isna(amount_cell): break
             continue
         금액 = pd.to_numeric(amount_cell, errors='coerce')
-        if pd.isna(금액) or 금액 <= 0:
-            continue
+        if pd.isna(금액) or 금액 <= 0: continue
         항목_str = str(item_cell).strip()
         if any(keyword in 항목_str for keyword in ["김", "면", "다시마"]):
             parts = 항목_str.split('(')
@@ -321,8 +283,7 @@ def extract_kim_myeon_dashima(df, sheetname, 지점명):
 
 def extract_from_sheet(df, sheetname, 지점명):
     날짜 = sheetname_to_date(sheetname)
-    if not 날짜:
-        return []
+    if not 날짜: return []
     out = []
     configs = [
         ("인건비", SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT),
@@ -332,8 +293,7 @@ def extract_from_sheet(df, sheetname, 지점명):
         ("고정비", SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT),
     ]
     for i in range(SETTLEMENT_DATA_START_ROW, df.shape[0]):
-        if all(pd.isna(df.iloc[i, c[2]]) for c in configs if len(df.columns) > c[2]):
-            break
+        if all(pd.isna(df.iloc[i, c[2]]) for c in configs if len(df.columns) > c[2]): break
         for cat, item_col, amount_col in configs:
             if len(df.columns) > item_col and len(df.columns) > amount_col:
                 항목, 금액 = df.iloc[i, item_col], pd.to_numeric(df.iloc[i, amount_col], errors='coerce')
@@ -392,14 +352,6 @@ if df_filtered.empty:
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
 식자재_분석용_df = df_filtered[(df_filtered['분류'] == '식자재') & (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))].copy()
 
-chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
-color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
-color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(지출['항목1'].unique())}
-color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for i, month in enumerate(sorted(df['월'].unique()))}
-color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
-color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] for i, branch in enumerate(sorted(df['지점명'].unique()))}
-
-
 # --- 헤더 및 KPI ---
 분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
 분석최대일 = df_filtered['날짜'].max().strftime('%Y-%m-%d')
@@ -417,6 +369,46 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ✅ [수정] 정보 요약 섹션을 이곳으로 이동하고, 스타일 적용
+# --------------------------------------------------------------------------
+# 1. 정보 요약 섹션을 위한 CSS 스타일 정의
+st.markdown("""
+<style>
+.summary-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 25px;
+    background-color: #fafafa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+div[data-testid="stMetric"] {
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 2. 정보 요약 섹션을 박스 안에 렌더링
+with st.container():
+    st.markdown('<div class="summary-container">', unsafe_allow_html=True)
+
+    st.markdown("<h2 style='text-align: center; font-size: 28px;'>🔸 정보 요약 🔸</h2>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    매출합계 = 매출['금액'].sum()
+    지출합계 = 지출['금액'].sum()
+    순수익 = 매출합계 - 지출합계
+    순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
+
+    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+    col_kpi1.metric("전체 매출", f"{매출합계:,.0f} 원")
+    col_kpi2.metric("전체 지출", f"{지출합계:,.0f} 원")
+    col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
+    col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+# --------------------------------------------------------------------------
+
 with st.expander("🗂️ 파일 처리 요약 보기"):
     col1, col2 = st.columns(2)
     with col1:
@@ -427,20 +419,6 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
         st.dataframe(pd.DataFrame.from_dict(processed_rows, orient='index', columns=['행 수']))
 
 st.markdown("---")
-
-st.markdown("---")
-display_styled_title_box("🔸 정보 요약 🔸", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
-매출합계 = 매출['금액'].sum()
-지출합계 = 지출['금액'].sum()
-순수익 = 매출합계 - 지출합계
-순수익률 = (순수익 / 매출합계 * 100) if 매출합계 > 0 else 0
-col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
-col_kpi1.metric("전체 매출", f"{매출합계:,.0f} 원")
-col_kpi2.metric("전체 지출", f"{지출합계:,.0f} 원")
-col_kpi3.metric("순수익", f"{순수익:,.0f} 원")
-col_kpi4.metric("순수익률", f"{순수익률:.2f}%")
-st.markdown("---")
-st.markdown("<br>", unsafe_allow_html=True)
 
 #######################
 # 📈 매출 분석 섹션
