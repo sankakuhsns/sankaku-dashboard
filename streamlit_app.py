@@ -483,7 +483,8 @@ with col_chart2:
         line = px.line(line_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
         line.update_traces(text=line_data['금액'].apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
         line.update_layout(height=550, dragmode=False, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(line, use_container_width=True, config={"staticPlot": True, "displayModeBar": False, "scrollZoom": False})
+        st.plotly_chart(line, use_container_width=True, config={"scrollZoom": False, "displayModeBar": True})
+
 
 
 st.markdown("---")
