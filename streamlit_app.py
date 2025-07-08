@@ -312,24 +312,23 @@ setup_page()
 # ✅ [수정] 내비게이션 버튼 스타일을 이곳에 전역으로 정의합니다.
 st.markdown("""
     <style>
-    .nav-button {
+     .nav-button {
         display: block;
         width: 100%;
-        padding: 10px;
-        background-color: #f0f2f6;
+        padding: 8px 0;             /* 변경: 상하 여백만 주어 클릭 영역 확보 */
         color: #333 !important;
         text-align: left;
-        border-radius: 5px;
-        text-decoration: none;
+        text-decoration: none;      /* 기본 상태에서는 밑줄 없음 */
         margin-bottom: 4px;
-        font-weight: bold;
-        font-size: 0.9rem; 
-        transition: background-color 0.3s, box-shadow 0.3s;
+        font-size: 0.9rem;
+        /* 아래 속성들은 버튼 형식이 아니므로 제거 또는 수정 */
+        /* background-color, border-radius, font-weight, transition */
+        transition: color 0.2s; /* 글자색 변경에 부드러운 효과 추가 */
     }
     .nav-button:hover {
-        background-color: #e0e2e6;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-decoration: none;
+        text-decoration: underline; /* 변경: 마우스 올리면 밑줄 표시 */
+        /* 아래 속성들은 버튼 모션을 없애기 위해 제거 */
+        /* background-color, box-shadow */
     }
     </style>
     """, unsafe_allow_html=True)
