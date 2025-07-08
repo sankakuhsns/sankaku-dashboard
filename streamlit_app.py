@@ -48,18 +48,20 @@ def setup_page():
     st.markdown("""
     <style>
     /* 하단 푸터와 Streamlit Cloud 왕관 아이콘 숨기기 */
-        footer, [data-testid="stDecoration"] {
+    footer,
+    [data-testid="stDecoration"] {
         display: none !important;
     }
 
     /* GitHub 및 Fork 버튼 숨기기 */
-        a[title="View source"],   /* GitHub 고양이 아이콘 */
-        a[title="Fork this app"]  /* Fork 버튼 */
+    a[title="View source"],   /* GitHub 고양이 아이콘 */
+    a[title="Fork this app"]  /* Fork 버튼 */
     {
         display: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
 
 
 def display_styled_title_box(title_text, **kwargs):
