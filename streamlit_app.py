@@ -309,29 +309,50 @@ def extract_from_sheet(df, sheetname, 지점명):
 
 setup_page()
 
-# ✅ [수정] 내비게이션 버튼 스타일을 이곳에 전역으로 정의합니다.
-st.markdown("""
+ st.markdown("""
     <style>
-     .nav-button {
+    /* 1. 링크들을 감싸는 박스 스타일 추가 */
+    .link-container {
+        border: 1px solid #e0e0e0; /* 연한 회색 테두리 */
+        border-radius: 8px;       /* 모서리를 둥글게 */
+        padding: 15px;            /* 박스 안쪽 여백 */
+    }
+
+    .nav-button {
         display: block;
-        width: 100%;
-        padding: 8px 0;             /* 변경: 상하 여백만 주어 클릭 영역 확보 */
+        padding: 4px 0;             /* 변경: 상하 여백 줄임 (줄간격 축소) */
         color: #333 !important;
-        text-align: left;
-        text-decoration: none;      /* 기본 상태에서는 밑줄 없음 */
-        margin-bottom: 4px;
+        text-decoration: none;
+        margin-bottom: 2px;         /* 변경: 링크간 간격 최소화 */
         font-size: 0.9rem;
-        /* 아래 속성들은 버튼 형식이 아니므로 제거 또는 수정 */
-        /* background-color, border-radius, font-weight, transition */
-        transition: color 0.2s; /* 글자색 변경에 부드러운 효과 추가 */
+        /* 변경: font-weight 전환 효과 추가 */
+        transition: color 0.2s, font-weight 0.2s, text-decoration-color 0.2s;
     }
     .nav-button:hover {
-        text-decoration: underline; /* 변경: 마우스 올리면 밑줄 표시 */
-        /* 아래 속성들은 버튼 모션을 없애기 위해 제거 */
-        /* background-color, box-shadow */
+        text-decoration: underline;
+        font-weight: bold;          /* 추가: 마우스 올리면 글자 굵게 */
     }
     </style>
     """, unsafe_allow_html=True)
+
+    # --- 페이지 내용 ---
+    st.title("Setup 페이지")
+
+    # 1. '바로가기' 제목
+    st.markdown("<h4>바로가기</h4>", unsafe_allow_html=True)
+
+    # 2. 링크들을 박스로 감싸기
+    st.markdown("""
+    <div class="link-container">
+        <a href="#" target="_self" class="nav-button">📈 매출 분석</a>
+        <a href="#" target="_self" class="nav-button">💸 지출 분석</a>
+        <a href="#" target="_self" class="nav-button">💰 순수익 분석</a>
+        <a href="#" target="_self" class="nav-button">🥒 식자재 분석</a>
+        <a href="#" target="_self" class="nav-button">📊 시뮬레이션 분석</a>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if not st.session_state.authenticated:
