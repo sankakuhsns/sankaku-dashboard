@@ -334,6 +334,17 @@ with st.sidebar:
     st.title('📊 대시보드')
     st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
     st.markdown("---")
+
+    st.markdown("""<style>.nav-button{display:block;width:100%;padding:10px;background-color:#f0f2f6;color:#333!important;text-align:center;border-radius:5px;text-decoration:none;margin-bottom:8px;font-weight:bold;transition:background-color 0.3s,box-shadow 0.3s}.nav-button:hover{background-color:#e0e2e6;box-shadow:0 2px 4px rgba(0,0,0,0.1);text-decoration:none}</style>
+    <h4>바로가기</h4>
+    <a class="nav-button" href="#sales-analysis">📈 매출 분석</a>
+    <a class="nav-button" href="#expense-analysis">💸 지출 분석</a>
+    <a class="nav-button" href="#profit-analysis">💰 순수익 분석</a>
+    <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a>
+    <a class="nav-button" href="#simulation-analysis">📊 시뮬레이션 분석</a>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+
     
     지점목록 = sorted(df['지점명'].unique())
     월목록 = sorted(df['월'].unique(), reverse=True)
