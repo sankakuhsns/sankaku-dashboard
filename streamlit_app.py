@@ -44,19 +44,29 @@ def setup_page():
         initial_sidebar_state="expanded"
     )
     st.markdown("""
-        <style>
-        /* 1. 기본 UI 요소들 숨기기 */
-        #MainMenu, footer, [data-testid="stDecoration"] {
-            visibility: hidden;
-            display: none !important;
-        }
+    <style>
+    /* Streamlit의 기본 UI 요소들을 한 번에 숨깁니다 */
+    #MainMenu,
+    footer,
+    [data-testid="stDecoration"],
+    [data-testid="stHeader"] {
+        visibility: hidden;
+        display: none !important;
+        height: 0%;
+    }
 
-        /* 2. [최종 수정] 상단 툴바에서 'github.com'을 포함하는 모든 링크 숨기기 */
-        /* 이 방법으로 GitHub 아이콘, Fork 버튼 등을 모두 확실하게 제거합니다. */
-        div[data-testid="stToolbar"] a[href*="github.com"] {
-            display: none !important;
-        }
-        </style>
+    /* 툴바 자체를 다시 보이게 하고, 그 안의 GitHub 아이콘만 숨깁니다 */
+    [data-testid="stToolbar"] {
+        visibility: visible !important;
+        display: block !important;
+        right: 2rem; /* 위치 조정 */
+    }
+    
+    /* 정확한 GitHub 아이콘 선택자 */
+    [data-testid="stToolbar"] a[title="View source"] {
+        display: none !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
     
