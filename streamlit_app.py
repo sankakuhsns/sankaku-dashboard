@@ -467,7 +467,7 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
 
 st.markdown("---")
 
-
+st.markdown("<a id='sales-analysis'></a>", unsafe_allow_html=True)
 #######################
 # 📈 매출 분석 섹션
 #######################
@@ -532,6 +532,7 @@ with col_chart5:
         pie3.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5, traceorder='normal'), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(pie3, use_container_width=True)
 
+st.markdown("<a id='expense-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 💸 지출 분석 섹션
 ####################################################################################################
@@ -631,6 +632,7 @@ with col_d_exp2:
         line_expense_d2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_expense_d2, use_container_width=True)
 
+st.markdown("<a id='profit-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 💰 순수익 분석 섹션
 ####################################################################################################
@@ -730,6 +732,7 @@ with col_profit_cost_3:
         line_labor_cost.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
+st.markdown("<a id='ingredient-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 🥒 식자재 분석 섹션
 ####################################################################################################
@@ -748,6 +751,7 @@ else:
         top_20_식자재['비중 (%)'] = (top_20_식자재['총 금액'] / total_식자재_금액 * 100).fillna(0) if total_식자재_금액 > 0 else 0
     st.dataframe(top_20_식자재[['순위', '식자재 품목 (세부)', '총 금액', '비중 (%)']].style.format({"총 금액": "{:,.0f}원", "비중 (%)": "{:.2f}%"}).set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
 
+st.markdown("<a id='simulation-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 📊 시뮬레이션 분석 섹션
 ####################################################################################################
