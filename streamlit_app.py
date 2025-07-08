@@ -41,23 +41,6 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 #      2. UI 설정 함수들
 # ==============================================================================
 
-def setup_page():
-    st.markdown("""
-    <style>
-    /* 하단 푸터 및 Streamlit Cloud 장식 아이콘 제거 */
-    footer, [data-testid="stDecoration"] {
-        display: none !important;
-    }
-
-    /* GitHub 고양이 아이콘 및 Fork 버튼 제거 */
-    a[title="View source"],
-    a[title="Fork this app"],
-    div[data-testid="stActionButtonIcon"] svg {
-        display: none !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
         <div style="border: 1px solid #cccccc; padding: {kwargs.get('padding_y', '10px')} 10px; border-radius: 5px; background-color: {kwargs.get('background_color', '#f5f5f5')}; text-align: center; margin-bottom: {kwargs.get('margin_bottom', '20px')};">
