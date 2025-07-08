@@ -44,19 +44,19 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.markdown("""
     <style>
-    /* 하단 푸터와 Streamlit Cloud 왕관 아이콘 숨기기 */
-    footer,
-    [data-testid="stDecoration"] {
+    /* 하단 푸터 및 Streamlit Cloud 장식 아이콘 제거 */
+    footer, [data-testid="stDecoration"] {
         display: none !important;
     }
 
-    /* GitHub 및 Fork 버튼 숨기기 */
+    /* GitHub 고양이 아이콘 및 Fork 버튼 제거 */
     a[title="View source"],
-    a[title="Fork this app"] {
+    a[title="Fork this app"],
+    div[data-testid="stActionButtonIcon"] svg {
         display: none !important;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
