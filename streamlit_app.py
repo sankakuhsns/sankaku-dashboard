@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="📊",
+        page_icon="�",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -430,6 +430,9 @@ with col_chart1:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '매출 항목 비율' 차트를 표시할 수 없습니다.")
     else:
+        # ✅ [수정] color_map_항목1_매출 변수를 사용하도록 수정
+        chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
+        color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
         pie1 = px.pie(매출.groupby('항목1')['금액'].sum().reset_index(), names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_매출)
         pie1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
         pie1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
@@ -440,6 +443,7 @@ with col_chart2:
         st.warning("매출 데이터가 없어 '매출 항목 월별 트렌드' 차트를 표시할 수 없습니다.")
     else:
         line_data = 매출.groupby(['월','항목1'])['금액'].sum().reset_index()
+        # ✅ [수정] color_map_항목1_매출 변수를 사용하도록 수정
         line = px.line(line_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
         line.update_traces(text=line_data['금액'].apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
         line.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
