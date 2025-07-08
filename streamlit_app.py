@@ -373,7 +373,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    <h4>슬라이더</h4>
+    st.write("슬라이더")
     지점목록 = sorted(df['지점명'].unique())
     월목록 = sorted(df['월'].unique(), reverse=True)
     
