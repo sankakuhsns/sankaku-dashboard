@@ -43,7 +43,6 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-    import streamlit as st
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
