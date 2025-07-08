@@ -43,7 +43,7 @@ def setup_page():
         layout="wide",
         initial_sidebar_state="expanded"
     )
-     st.markdown("""
+    st.markdown("""
         <style>
         /* 1. 기본 UI 요소들 숨기기 */
         #MainMenu, footer, [data-testid="stDecoration"] {
