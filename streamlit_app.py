@@ -323,13 +323,12 @@ st.markdown("""
         padding: 4px 0;             /* 변경: 상하 여백 줄임 (줄간격 축소) */
         color: #333 !important;
         text-decoration: none;
-        margin-bottom: 2px;         /* 변경: 링크간 간격 최소화 */
+        margin-bottom: 1px;         /* 변경: 링크간 간격 최소화 */
         font-size: 0.9rem;
         /* 변경: font-weight 전환 효과 추가 */
         transition: color 0.2s, font-weight 0.2s, text-decoration-color 0.2s;
     }
     .nav-button:hover {
-        text-decoration: underline;
         font-weight: bold;          /* 추가: 마우스 올리면 글자 굵게 */
     }
     </style>
