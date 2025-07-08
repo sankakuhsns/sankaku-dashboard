@@ -429,7 +429,7 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
 st.markdown("---")
 
 st.markdown("---")
-display_styled_title_box("🔸 정보 요약 🔸", font_size="32px", padding_y="15px")
+display_styled_title_box("🔸 정보 요약 🔸", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 매출합계 = 매출['금액'].sum()
 지출합계 = 지출['금액'].sum()
 순수익 = 매출합계 - 지출합계
