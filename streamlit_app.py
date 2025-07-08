@@ -309,7 +309,7 @@ def extract_from_sheet(df, sheetname, 지점명):
 
 setup_page()
 
- st.markdown("""
+st.markdown("""
     <style>
     /* 1. 링크들을 감싸는 박스 스타일 추가 */
     .link-container {
