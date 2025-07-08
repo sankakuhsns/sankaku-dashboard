@@ -743,7 +743,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("📊 시뮬레이션 분석 📊", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
 if not df_expense_analysis.empty:
-    # --- UI 너비 조정을 위한 CSS 주입 ---
+    # --- UI 너비 및 KPI 카드 스타일을 위한 CSS 주입 ---
     st.markdown("""
         <style>
         div[data-testid="stNumberInput"] input {
@@ -774,10 +774,50 @@ if not df_expense_analysis.empty:
         </style>
     """, unsafe_allow_html=True)
 
-    sim_rev_col, sim_hall_col = st.columns(2)
+    # --- 시뮬레이션 기반 데이터 계산 ---
+    num_months = len(선택_월)
+    num_stores = df_expense_analysis['지점명'].nunique()
+    divisor = num_months * num_stores if num_months * num_stores > 0 else 1
+
+    base_total_revenue = df_expense_analysis['총매출'].sum() / divisor
+    base_costs = {item: df_expense_analysis[item].sum() / divisor for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_expense_analysis.columns}
+    base_total_cost = sum(base_costs.values())
+    base_profit = base_total_revenue - base_total_cost
+    base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
+
+    base_hall_revenue = df_expense_analysis.get('홀매출_총액', 0).sum() / divisor
+    base_delivery_takeout_revenue = df_expense_analysis.get('배달매출_총액', 0).sum() / divisor
+    base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
+
+    # ✅ [수정] '현재 상태 요약' 섹션을 HTML로 직접 렌더링
+    st.subheader("📋 현재 상태 요약 (지점당 월평균)")
+    st.markdown(f"""
+    <div class="kpi-container">
+        <div>
+            <div class="kpi-label">평균 총매출</div>
+            <div class="kpi-value">{base_total_revenue:,.0f} 원</div>
+        </div>
+        <div>
+            <div class="kpi-label">평균 총비용</div>
+            <div class="kpi-value">{base_total_cost:,.0f} 원</div>
+        </div>
+        <div>
+            <div class="kpi-label">평균 순수익</div>
+            <div class="kpi-value">{base_profit:,.0f} 원</div>
+        </div>
+        <div>
+            <div class="kpi-label">평균 순수익률</div>
+            <div class="kpi-value">{base_profit_margin:.1f}%</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.subheader("⚙️ 시뮬레이션 조건 설정")
+
+    # --- 시뮬레이션 조건 설정 UI ---
     sim_rev_col, sim_hall_col = st.columns(2)
     with sim_rev_col:
-        # ✅ [요청 반영] format_str="%.0f"로 소수점 제거, 도움말에는 쉼표 서식 적용
         sim_revenue = custom_slider(
             label="예상 월평균 매출 (원)",
             min_value=0.0, max_value=150_000_000.0,
@@ -787,14 +827,13 @@ if not df_expense_analysis.empty:
             format_str="%.0f"
         )
     with sim_hall_col:
-        # ✅ [요청 반영] 소수점 한 자리, +/- 버튼이 있는 숫자 칸 사용
         sim_hall_ratio_pct = custom_slider(
             label="예상 홀매출 비율 (%)",
             min_value=0.0, max_value=100.0,
             default_value=base_hall_ratio, step=0.1,
             help_text=f"현재 홀매출 비율: {base_hall_ratio:.1f}%",
             key="sim_hall_ratio",
-            format_str="%.1f" # 소수점 한 자리 지정
+            format_str="%.1f"
         )
 
     sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
@@ -806,7 +845,6 @@ if not df_expense_analysis.empty:
         ordered_cost_items = ['식자재', '소모품', '배달비', '인건비', '광고비', '고정비']
         for i in range(0, len(ordered_cost_items), 2):
             col1, col2 = st.columns(2)
-            # 이하는 원본 코드와 동일하게 custom_slider를 사용하도록 유지
             item1 = ordered_cost_items[i]
             if item1 in base_costs:
                 with col1:
@@ -835,7 +873,6 @@ if not df_expense_analysis.empty:
     royalty_rate = custom_slider(label="👑 로열티 설정 (매출 대비 %)", min_value=0.0, max_value=10.0, default_value=0.0, step=0.1, help_text="전체 예상 매출액 대비 로열티 비율을 설정합니다.", key="royalty_rate")
     st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100):,.0f} 원**")
     st.markdown("<br>", unsafe_allow_html=True)
-
 
     if st.button("🚀 시뮬레이션 실행", use_container_width=True):
         sim_costs = {}
