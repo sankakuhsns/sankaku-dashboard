@@ -39,7 +39,7 @@ ALL_POSSIBLE_EXPENSE_CATEGORIES = list(set(VARIABLE_COST_ITEMS + DELIVERY_SPECIF
 def setup_page():
     st.set_page_config(
         page_title="Sankaku Dashboard",
-        page_icon="�",
+        page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -735,49 +735,44 @@ else:
         top_20_식자재['비중 (%)'] = (top_20_식자재['총 금액'] / total_식자재_금액 * 100).fillna(0) if total_식자재_금액 > 0 else 0
     st.dataframe(top_20_식자재[['순위', '식자재 품목 (세부)', '총 금액', '비중 (%)']].style.format({"총 금액": "{:,.0f}원", "비중 (%)": "{:.2f}%"}).set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
 
-# ####################################################################################################
-# # 📊 시뮬레이션 분석 섹션 (최종 수정된 코드)
-# ####################################################################################################
+####################################################################################################
+# 📊 시뮬레이션 분석 섹션
+####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("📊 시뮬레이션 분석 📊", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-
 if not df_expense_analysis.empty:
-    # --- UI 너비 조정을 위한 CSS 주입 (더 정교하게 수정) ---
-    # 슬라이더 옆 숫자 입력(st.number_input) 필드의 너비만 조정
+    # --- UI 너비 조정을 위한 CSS 주입 ---
     st.markdown("""
         <style>
-        /* data-testid가 stNumberInput인 div 내부의 input 요소의 최소 너비를 지정 */
         div[data-testid="stNumberInput"] input {
             min-width: 110px !important;
-            width: 110px !important; /* 고정 너비를 주어 일관성 유지 */
+            width: 110px !important;
+        }
+        /* KPI 카드 스타일 (정보 요약과 동일하게 적용) */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+        }
+        .kpi-container .kpi-label {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .kpi-container .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #111;
         }
         </style>
     """, unsafe_allow_html=True)
-
-    num_months = len(선택_월)
-    num_stores = df_expense_analysis['지점명'].nunique()
-    divisor = num_months * num_stores if num_months * num_stores > 0 else 1
-
-    base_total_revenue = df_expense_analysis['총매출'].sum() / divisor
-    base_costs = {item: df_expense_analysis[item].sum() / divisor for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_expense_analysis.columns}
-    base_total_cost = sum(base_costs.values())
-    base_profit = base_total_revenue - base_total_cost
-    base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0
-
-    base_hall_revenue = df_expense_analysis.get('홀매출_총액', 0).sum() / divisor
-    base_delivery_takeout_revenue = df_expense_analysis.get('배달매출_총액', 0).sum() / divisor
-    base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0
-
-    st.subheader("📋 현재 상태 요약 (지점당 월평균)")
-    summary_cols = st.columns(4)
-    summary_cols[0].metric("평균 총매출", f"{base_total_revenue:,.0f} 원")
-    summary_cols[1].metric("평균 총비용", f"{base_total_cost:,.0f} 원")
-    summary_cols[2].metric("평균 순수익", f"{base_profit:,.0f} 원")
-    summary_cols[3].metric("평균 순수익률", f"{base_profit_margin:.1f}%")
-    st.markdown("---")
-    st.subheader("⚙️ 시뮬레이션 조건 설정")
 
     sim_rev_col, sim_hall_col = st.columns(2)
     sim_rev_col, sim_hall_col = st.columns(2)
