@@ -335,23 +335,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-    # --- 페이지 내용 ---
-    st.title("Setup 페이지")
-
-    # 1. '바로가기' 제목
-    st.markdown("<h4>바로가기</h4>", unsafe_allow_html=True)
-
-    # 2. 링크들을 박스로 감싸기
-    st.markdown("""
-    <div class="link-container">
-        <a href="#" target="_self" class="nav-button">📈 매출 분석</a>
-        <a href="#" target="_self" class="nav-button">💸 지출 분석</a>
-        <a href="#" target="_self" class="nav-button">💰 순수익 분석</a>
-        <a href="#" target="_self" class="nav-button">🥒 식자재 분석</a>
-        <a href="#" target="_self" class="nav-button">📊 시뮬레이션 분석</a>
-    </div>
-    """, unsafe_allow_html=True)
-
+ 
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
