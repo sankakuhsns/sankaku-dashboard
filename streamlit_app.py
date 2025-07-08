@@ -358,7 +358,6 @@ df['항목1'] = df['항목1'].fillna('기타')
 df['항목2'] = df['항목2'].fillna('기타')
 
 with st.sidebar:
-    st.title('📊 대시보드')
     st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
     st.markdown("---")
 
@@ -374,7 +373,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    
+    <h4>슬라이더</h4>
     지점목록 = sorted(df['지점명'].unique())
     월목록 = sorted(df['월'].unique(), reverse=True)
     
