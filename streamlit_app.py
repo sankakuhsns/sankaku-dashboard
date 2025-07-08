@@ -47,27 +47,20 @@ def setup_page():
 
     st.markdown("""
     <style>
-    /* 햄버거 메뉴와 푸터 숨기기 */
-        #MainMenu, footer {
-        visibility: hidden;
+    /* 하단 푸터와 Streamlit Cloud 왕관 아이콘 숨기기 */
+        footer, [data-testid="stDecoration"] {
+        display: none !important;
     }
 
-    /* 상단 툴바 전체를 보이지 않게 처리 (가장 확실한 방법) */
-        div[data-testid="stToolbar"] {
-        visibility: hidden;
-        height: 0%;
-        position: fixed;
+    /* GitHub 및 Fork 버튼 숨기기 */
+        a[title="View source"],   /* GitHub 고양이 아이콘 */
+        a[title="Fork this app"]  /* Fork 버튼 */
+    {
+        display: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-
-# --- 이하 앱 코드 ---
-st.title("최종 해결 테스트")
-st.write("이제 아이콘이 보이지 않고 슬라이더는 정상 작동할 것입니다.")
-
-with st.expander("슬라이더를 열어보세요"):
-    st.slider("슬라이더", 0, 100)
 
 def display_styled_title_box(title_text, **kwargs):
     st.markdown(f"""
