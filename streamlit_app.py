@@ -45,31 +45,20 @@ def setup_page():
     )
     st.markdown("""
     <style>
-    /* Streamlit의 기본 UI 요소들을 한 번에 숨깁니다 */
+    /* 햄버거 메뉴, 푸터, 배포 왕관 아이콘 숨기기 */
     #MainMenu,
     footer,
-    [data-testid="stDecoration"],
-    [data-testid="stHeader"] {
-        visibility: hidden;
+    [data-testid="stDecoration"] {
         display: none !important;
-        height: 0%;
     }
 
-    /* 툴바 자체를 다시 보이게 하고, 그 안의 GitHub 아이콘만 숨깁니다 */
-    [data-testid="stToolbar"] {
-        visibility: visible !important;
-        display: block !important;
-        right: 2rem; /* 위치 조정 */
-    }
-    
-    /* 정확한 GitHub 아이콘 선택자 */
-    [data-testid="stToolbar"] a[title="View source"] {
+    /* GitHub 아이콘 숨기기 (직접 확인한 정확한 선택자) */
+    a[title="View source"] {
         display: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    
     st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
     st.markdown("""
     <style>
