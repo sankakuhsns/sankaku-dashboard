@@ -48,12 +48,12 @@ def setup_page():
     st.markdown("""
     <style>
     /* 햄버거 메뉴와 푸터 숨기기 */
-    #MainMenu, footer {
+        #MainMenu, footer {
         visibility: hidden;
     }
 
     /* 상단 툴바 전체를 보이지 않게 처리 (가장 확실한 방법) */
-    div[data-testid="stToolbar"] {
+        div[data-testid="stToolbar"] {
         visibility: hidden;
         height: 0%;
         position: fixed;
