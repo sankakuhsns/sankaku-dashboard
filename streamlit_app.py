@@ -362,10 +362,10 @@ with st.sidebar:
      # ✅ [수정] 여기서는 HTML 링크만 사용합니다.
     st.markdown("""
     <h4>바로가기</h4>
-    <a class="nav-button" href="#sales-analysis">📈 매출 분석</a>
-    <a class="nav-button" href="#expense-analysis">💸 지출 분석</a>
-    <a class="nav-button" href="#profit-analysis">💰 순수익 분석</a>
-    <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a>
+    <a class="nav-button" href="#sales-analysis">📈 매출 분석</a><br>
+    <a class="nav-button" href="#expense-analysis">💸 지출 분석</a><br>
+    <a class="nav-button" href="#profit-analysis">💰 순수익 분석</a><br>
+    <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a><br>
     <a class="nav-button" href="#simulation-analysis">📊 시뮬레이션 분석</a>
     """, unsafe_allow_html=True)
 
