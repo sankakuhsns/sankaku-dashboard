@@ -725,6 +725,11 @@ if not df_expense_analysis.empty:
     배달매출_전용비용 = df_profit_analysis_recalc.get('배달비', 0)
     df_profit_analysis_recalc['배달순수익'] = df_profit_analysis_recalc['배달매출_분석용'] - (배달매출_관련_공통비용 + 배달매출_전용비용)
     df_profit_analysis_recalc['배달순수익률'] = (df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
+
+    # ✅ [수정] 월 기준으로 데이터 정렬하여 시간 순서대로 표시
+    # 이 한 줄의 코드가 이 섹션의 모든 선형 그래프에 적용됩니다.
+    df_profit_analysis_recalc = df_profit_analysis_recalc.sort_values(by='월')
+
 else:
     df_profit_analysis_recalc = pd.DataFrame()
 
@@ -769,7 +774,10 @@ with col_profit_cost_1:
         df_profit_analysis_recalc['공헌이익률'] = (1 - (df_profit_analysis_recalc['총변동비_계산'] / df_profit_analysis_recalc['총매출'].replace(0,1e-9))).fillna(0)
         df_profit_analysis_recalc['손익분기점_매출'] = (df_profit_analysis_recalc['총고정비_계산'] / df_profit_analysis_recalc['공헌이익률'].replace(0,1e-9)).replace([float('inf'), -float('inf')], 0).fillna(0)
         df_profit_analysis_recalc['안전여유매출액'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['손익분기점_매출']
+        
+        # groupby를 사용하더라도 원본 df_profit_analysis_recalc가 정렬되어 있으므로 순서가 유지됩니다.
         df_bep_total = df_profit_analysis_recalc.groupby('월').agg(총매출=('총매출', 'sum'), 손익분기점_매출=('손익분기점_매출', 'sum'), 안전여유매출액=('안전여유매출액', 'sum')).reset_index()
+        
         fig_bep = go.Figure()
         fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['총매출'], name='총매출', marker_color=chart_colors_palette[0], text=df_bep_total['총매출']))
         fig_bep.add_trace(go.Bar(x=df_bep_total['월'], y=df_bep_total['손익분기점_매출'], name='손익분기점 매출', marker_color=chart_colors_palette[1], text=df_bep_total['손익분기점_매출']))
