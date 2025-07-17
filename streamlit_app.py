@@ -532,14 +532,51 @@ with col_chart2:
 st.markdown("---")
 col_chart3, col_chart4, col_chart5 = st.columns(3)
 with col_chart3:
-    display_styled_title_box("지점별 매출 비교", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    # 1. 차트 제목 변경
+    display_styled_title_box("지점별 월 평균 매출 비교", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    
     if 매출.empty:
-        st.warning("매출 데이터가 없어 '지점별 매출 비교' 차트를 표시할 수 없습니다.")
+        # 2. 경고 메시지 내용 변경
+        st.warning("매출 데이터가 없어 '지점별 월 평균 매출 비교' 차트를 표시할 수 없습니다.")
     else:
-        매출_지점별 = 매출.groupby('지점명')['금액'].sum().reset_index()
-        bar1 = px.bar(매출_지점별, x='지점명', y='금액', text='금액', color='지점명', color_discrete_map=color_map_지점)
-        bar1.update_traces(texttemplate='%{text:,.0f}원', textposition='outside', hovertemplate="지점: %{x}<br>금액: %{y:,.0f}원<extra></extra>", textangle=0)
-        bar1.update_layout(height=550, xaxis_tickangle=0, bargap=0.5, showlegend=False, yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        # 3. 데이터 집계 방식 변경 (가장 중요한 부분)
+        #   - 기존: 지점별로 전체 매출을 합산 (sum)
+        #   - 변경: 1) 지점별/월별로 매출을 합산하고 -> 2) 지점별로 그 월별 매출값의 평균(mean)을 계산
+        
+        # 1단계: 지점별, 그리고 '월'별로 매출 합계를 계산합니다.
+        월별_매출 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index()
+        
+        # 2단계: 위에서 구한 월별 매출액을 지점별로 그룹화하여 '평균'을 계산합니다.
+        평균매출_지점별 = 월별_매출.groupby('지점명')['금액'].mean().reset_index()
+
+        # 4. 변경된 데이터프레임으로 차트 생성
+        bar1 = px.bar(
+            평균매출_지점별,  # 월 평균 매출 데이터 사용
+            x='지점명', 
+            y='금액',          # 이 컬럼은 이제 '월 평균 매출액'을 의미합니다.
+            text='금액', 
+            color='지점명', 
+            color_discrete_map=color_map_지점
+        )
+        
+        # 5. 차트 세부 정보 업데이트 (툴팁 내용 등)
+        bar1.update_traces(
+            texttemplate='%{text:,.0f}원', 
+            textposition='outside', 
+            hovertemplate="지점: %{x}<br><b>월 평균 매출</b>: %{y:,.0f}원<extra></extra>", # hover 텍스트 수정
+            textangle=0
+        )
+        
+        bar1.update_layout(
+            height=550, 
+            xaxis_tickangle=0, 
+            bargap=0.5, 
+            showlegend=False, 
+            yaxis_tickformat=',', 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
     display_styled_title_box("월별 매출 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
