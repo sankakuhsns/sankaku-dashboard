@@ -595,7 +595,7 @@ with col_chart4:
             y='금액',
             markers=True, # 각 데이터 포인트에 마커 표시
             line_shape='linear', # 선 모양 (직선)
-            template="plotly_white", # ✨ 핵심: 템플릿 적용
+            template="plotly_white", # ✨ 템플릿 적용 유지
             custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
         )
 
@@ -609,10 +609,8 @@ with col_chart4:
         # 월별 순서를 위한 X축 설정 유지
         line_chart.update_layout(
             height=550,
-            # ✨ 중요 수정: paper_bgcolor와 plot_bgcolor 설정 제거 또는 주석 처리
-            # 이 설정이 템플릿의 배경을 덮어쓸 수 있습니다.
-            # paper_bgcolor='rgba(0,0,0,0)', # 주석 처리 또는 제거
-            # plot_bgcolor='rgba(0,0,0,0)', # 주석 처리 또는 제거
+            # ✨ 중요: paper_bgcolor와 plot_bgcolor 설정을 완전히 제거합니다.
+            # 이 설정들이 템플릿의 배경을 덮어쓰는 원인입니다.
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
             xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
