@@ -584,10 +584,10 @@ with col_chart4:
         st.warning("매출 데이터가 없어 '월별 매출' 차트를 표시할 수 없습니다.")
     else:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
-        total_sales_monthly = monthly_sales['금액'].sum() # 전체 매출 합계 계산
+        total_sales_monthly = monthly_sales['금액'].sum()
 
-        # 각 월의 비중을 미리 계산하여 customdata에 사용할 리스트/시리즈 생성
-        monthly_percentage = (monthly_sales['금액'] / total_sales_monthly).fillna(0) # 0으로 나누는 경우 대비 fillna(0) 추가
+        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가 (이게 핵심!)
+        monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
         bar2 = px.bar(monthly_sales,
                       x='월',
@@ -597,10 +597,12 @@ with col_chart4:
 
         bar2.update_traces(
             marker=dict(line=dict(color='#cccccc', width=1)),
-            text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'), # 막대 위에 금액 표시
-            textposition='outside', # 막대 바깥쪽에 표시
-            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>", # customdata로 비중 표시
-            customdata=monthly_percentage # 비중 데이터를 customdata로 전달
+            # text는 y축 값 (금액)을 직접 참조하여 표시
+            texttemplate='%{y:,.0f}원', # 각 막대의 금액을 직접 표시
+            textposition='outside',
+            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>",
+            # customdata에 '비중' 컬럼을 직접 할당
+            customdata=monthly_sales['비중']
         )
 
         bar2.update_layout(
@@ -620,10 +622,10 @@ with col_chart5:
     else:
         ordered_weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
         daily_sales = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
-        total_sales_daily = daily_sales['금액'].sum() # 전체 매출 합계 계산
+        total_sales_daily = daily_sales['금액'].sum()
 
-        # 각 요일의 비중을 미리 계산하여 customdata에 사용할 리스트/시리즈 생성
-        daily_percentage = (daily_sales['금액'] / total_sales_daily).fillna(0) # 0으로 나누는 경우 대비 fillna(0) 추가
+        # 각 요일의 비중을 DataFrame에 새 컬럼으로 추가 (이게 핵심!)
+        daily_sales['비중'] = (daily_sales['금액'] / total_sales_daily).fillna(0)
 
         bar3 = px.bar(daily_sales,
                       x='요일',
@@ -633,10 +635,12 @@ with col_chart5:
 
         bar3.update_traces(
             marker=dict(line=dict(color='#cccccc', width=1)),
-            text=daily_sales['금액'].apply(lambda x: f'{x:,.0f}원'), # 막대 위에 금액 표시
-            textposition='outside', # 막대 바깥쪽에 표시
-            hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>", # customdata로 비중 표시
-            customdata=daily_percentage # 비중 데이터를 customdata로 전달
+            # text는 y축 값 (금액)을 직접 참조하여 표시
+            texttemplate='%{y:,.0f}원', # 각 막대의 금액을 직접 표시
+            textposition='outside',
+            hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>",
+            # customdata에 '비중' 컬럼을 직접 할당
+            customdata=daily_sales['비중']
         )
 
         bar3.update_layout(
