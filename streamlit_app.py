@@ -579,9 +579,9 @@ with col_chart3:
         
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
-    display_styled_title_box("월별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    display_styled_title_box("월별 매출 추이", background_color="#f5f5f5", font_size="22px", margin_bottom="20px") # 제목 변경
     if 매출.empty:
-        st.warning("매출 데이터가 없어 '월별 매출' 차트를 표시할 수 없습니다.")
+        st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         total_sales_monthly = monthly_sales['금액'].sum()
@@ -589,32 +589,39 @@ with col_chart4:
         # 각 월의 비중을 DataFrame에 새 컬럼으로 추가
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        bar2 = px.bar(monthly_sales,
-                      x='월',
-                      y='금액',
-                      color='월',
-                      color_discrete_map=color_map_월,
-                      # custom_data를 px.bar 생성 시점에 전달
-                      custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
-                     )
+        # px.line으로 변경
+        line_chart = px.line(monthly_sales,
+                             x='월',
+                             y='금액',
+                             markers=True, # 각 데이터 포인트에 마커 표시
+                             line_shape='linear', # 선 모양 (직선)
+                             color_discrete_sequence=px.colors.qualitative.Plotly # 일관된 색상 팔레트 사용 또는 원하는 색상 지정
+                            )
 
-        bar2.update_traces(
-            marker=dict(line=dict(color='#cccccc', width=1)),
-            texttemplate='%{y:,.0f}원', # 막대 위에 금액 표시 (Y값 직접 참조)
-            textposition='outside',
-            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>" # customdata[0]로 첫 번째 custom_data 값 참조
+        # 선 색상 및 마커 설정
+        # (만약 color_map_월을 사용하고 싶다면, px.line의 'color' 인자를 사용하여 '월' 컬럼을 지정해야 합니다.)
+        # 여기서는 전체 라인을 하나의 색상으로 통일하고, 마커에만 월별 색상 구분을 하는 방식을 가정합니다.
+        # 만약 월별로 다른 선 색상을 원한다면 px.line에 `color='월'`을 사용하세요.
+        
+        line_chart.update_traces(
+            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
+            texttemplate='%{y:,.0f}원', # 각 점 위에 금액 표시
+            textposition='top center', # 텍스트 위치 (점 위 중앙)
+            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
+            customdata=monthly_sales[['비중']] # customdata로 사용할 컬럼(Series) 전달, [[]]로 DataFrame 형식 유지
         )
-
-        bar2.update_layout(
+        
+        # 월별 순서를 위한 X축 설정 (막대 그래프와 동일)
+        line_chart.update_layout(
             height=550,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
             xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
-            showlegend=False
+            showlegend=False # 범례 숨기기
         )
-        st.plotly_chart(bar2, use_container_width=True)
+        st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
     display_styled_title_box("요일별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
