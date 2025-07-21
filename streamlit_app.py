@@ -586,23 +586,23 @@ with col_chart4:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         total_sales_monthly = monthly_sales['금액'].sum()
 
-        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가 (이게 핵심!)
+        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
         bar2 = px.bar(monthly_sales,
                       x='월',
                       y='금액',
                       color='월',
-                      color_discrete_map=color_map_월)
+                      color_discrete_map=color_map_월,
+                      # custom_data를 px.bar 생성 시점에 전달
+                      custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
+                     )
 
         bar2.update_traces(
             marker=dict(line=dict(color='#cccccc', width=1)),
-            # text는 y축 값 (금액)을 직접 참조하여 표시
-            texttemplate='%{y:,.0f}원', # 각 막대의 금액을 직접 표시
+            texttemplate='%{y:,.0f}원', # 막대 위에 금액 표시 (Y값 직접 참조)
             textposition='outside',
-            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>",
-            # customdata에 '비중' 컬럼을 직접 할당
-            customdata=monthly_sales['비중']
+            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>" # customdata[0]로 첫 번째 custom_data 값 참조
         )
 
         bar2.update_layout(
@@ -624,23 +624,23 @@ with col_chart5:
         daily_sales = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
         total_sales_daily = daily_sales['금액'].sum()
 
-        # 각 요일의 비중을 DataFrame에 새 컬럼으로 추가 (이게 핵심!)
+        # 각 요일의 비중을 DataFrame에 새 컬럼으로 추가
         daily_sales['비중'] = (daily_sales['금액'] / total_sales_daily).fillna(0)
 
         bar3 = px.bar(daily_sales,
                       x='요일',
                       y='금액',
                       color='요일',
-                      color_discrete_map=color_map_요일)
+                      color_discrete_map=color_map_요일,
+                      # custom_data를 px.bar 생성 시점에 전달
+                      custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
+                     )
 
         bar3.update_traces(
             marker=dict(line=dict(color='#cccccc', width=1)),
-            # text는 y축 값 (금액)을 직접 참조하여 표시
-            texttemplate='%{y:,.0f}원', # 각 막대의 금액을 직접 표시
+            texttemplate='%{y:,.0f}원', # 막대 위에 금액 표시 (Y값 직접 참조)
             textposition='outside',
-            hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata:.1%}<extra></extra>",
-            # customdata에 '비중' 컬럼을 직접 할당
-            customdata=daily_sales['비중']
+            hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>" # customdata[0]로 첫 번째 custom_data 값 참조
         )
 
         bar3.update_layout(
