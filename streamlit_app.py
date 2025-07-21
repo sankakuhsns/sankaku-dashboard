@@ -579,26 +579,60 @@ with col_chart3:
         
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
-    display_styled_title_box("월별 매출 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    display_styled_title_box("월별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px") # 명확성을 위해 제목 변경
     if 매출.empty:
-        st.warning("매출 데이터가 없어 '월별 매출 비율' 차트를 표시할 수 없습니다.")
+        st.warning("매출 데이터가 없어 '월별 매출' 차트를 표시할 수 없습니다.")
     else:
-        pie2 = px.pie(매출.groupby('월')['금액'].sum().reset_index(), names='월', values='금액', color='월', color_discrete_map=color_map_월)
-        pie2.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="월: %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
-        pie2.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(pie2, use_container_width=True)
+        # 원형 차트 대신 막대형 차트 생성
+        bar2 = px.bar(매출.groupby('월')['금액'].sum().reset_index(),
+                      x='월',
+                      y='금액',
+                      color='월', # 월별로 막대 색상 지정
+                      color_discrete_map=color_map_월,
+                      text_auto='.2s') # 막대에 자동으로 텍스트 레이블 추가 (SI 단위로 짧게 포맷)
+
+        bar2.update_traces(marker=dict(line=dict(color='#cccccc', width=1)),
+                           hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<extra></extra>")
+        
+        # 막대형 차트 레이아웃 업데이트
+        bar2.update_layout(
+            height=550,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="월", # X축 제목
+            yaxis_title="매출 금액 (원)", # Y축 제목
+            xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']} # 월이 올바르게 정렬되도록 보장
+        )
+        st.plotly_chart(bar2, use_container_width=True)
 with col_chart5:
-    display_styled_title_box("요일별 매출 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    display_styled_title_box("요일별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px") # 명확성을 위해 제목 변경
     if 매출.empty:
-        st.warning("매출 데이터가 없어 '요일별 매출 비율' 차트를 표시할 수 없습니다.")
+        st.warning("매출 데이터가 없어 '요일별 매출' 차트를 표시할 수 없습니다.")
     else:
         ordered_weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
         매출_요일별 = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
-        pie3 = px.pie(매출_요일별, names='요일', values='금액', color='요일', color_discrete_map=color_map_요일)
-        pie3.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="요일: %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
-        pie3.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5, traceorder='normal'), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(pie3, use_container_width=True)
+        
+        # 원형 차트 대신 막대형 차트 생성
+        bar3 = px.bar(매출_요일별,
+                      x='요일',
+                      y='금액',
+                      color='요일', # 요일별로 막대 색상 지정
+                      color_discrete_map=color_map_요일,
+                      text_auto='.2s') # 막대에 자동으로 텍스트 레이블 추가
 
+        bar3.update_traces(marker=dict(line=dict(color='#cccccc', width=1)),
+                           hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<extra></extra>")
+        
+        # 막대형 차트 레이아웃 업데이트
+        bar3.update_layout(
+            height=550,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="요일", # X축 제목
+            yaxis_title="매출 금액 (원)", # Y축 제목
+            xaxis={'categoryorder':'array', 'categoryarray': ordered_weekdays} # 요일이 올바르게 정렬되도록 보장
+        )
+        st.plotly_chart(bar3, use_container_width=True)
 st.markdown("<a id='expense-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 💸 지출 분석 섹션
