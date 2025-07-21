@@ -595,9 +595,7 @@ with col_chart4:
             y='금액',
             markers=True, # 각 데이터 포인트에 마커 표시
             line_shape='linear', # 선 모양 (직선)
-            # ✨ 핵심 변경: 테마 적용 (col_chart2와 동일한 'plotly_white' 사용)
-            template="plotly_white",
-            # custom_data를 px.line 생성 시점에 전달
+            template="plotly_white", # ✨ 핵심: 템플릿 적용
             custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
         )
 
@@ -605,16 +603,16 @@ with col_chart4:
             mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
             texttemplate='%{y:,.0f}원', # 각 점 위에 금액 표시
             textposition='top center', # 텍스트 위치 (점 위 중앙)
-            # customdata[0]로 첫 번째 custom_data 값 참조
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>"
         )
         
         # 월별 순서를 위한 X축 설정 유지
         line_chart.update_layout(
             height=550,
-            # paper_bgcolor와 plot_bgcolor는 템플릿에 의해 관리되지만, 투명도 유지를 위해 명시
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            # ✨ 중요 수정: paper_bgcolor와 plot_bgcolor 설정 제거 또는 주석 처리
+            # 이 설정이 템플릿의 배경을 덮어쓸 수 있습니다.
+            # paper_bgcolor='rgba(0,0,0,0)', # 주석 처리 또는 제거
+            # plot_bgcolor='rgba(0,0,0,0)', # 주석 처리 또는 제거
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
             xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
