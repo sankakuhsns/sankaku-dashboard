@@ -583,41 +583,52 @@ with col_chart4:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
+        # 월별 매출 합계를 계산하고 '월' 컬럼의 순서를 정렬합니다.
+        # Plotly는 x축이 시간이나 순서형 데이터일 때 선을 자동으로 연결합니다.
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
-        total_sales_monthly = monthly_sales['금액'].sum()
+        
+        # '월' 컬럼을 순서대로 정렬하여 Plotly가 선을 올바르게 연결하도록 돕습니다.
+        # 이 부분이 누락되었을 때 선 연결이 안될 수 있습니다.
+        ordered_months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+        monthly_sales['월'] = pd.Categorical(monthly_sales['월'], categories=ordered_months, ordered=True)
+        monthly_sales = monthly_sales.sort_values('월')
 
+
+        total_sales_monthly = monthly_sales['금액'].sum()
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        # color_map_월에서 선 색상 가져오기
-        # 예시: 1월의 색상 또는 color_map_월의 첫 번째 색상 사용
-        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' # 맵이 비어있으면 기본 파란색
+        # color_map_월에서 선 색상 가져오기 (첫 번째 월의 색상 사용)
+        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
 
         line_chart = px.line(
             monthly_sales,
             x='월',
             y='금액',
-            color='월', # 월별 색상 구분을 위해 color='월' 유지 (마커 및 legend/hover에 영향)
-            color_discrete_map=color_map_월, # ✅ color_map_월 적용
+            # color='월'을 제거하여 단일 선으로 처리
+            # color_discrete_map도 필요 없음
             markers=True,
             line_shape='linear',
             custom_data=['비중']
         )
 
         line_chart.update_traces(
-            mode='lines+markers+text',
+            mode='lines+markers+text', # ✨ 이 부분이 선을 그리는 핵심 (재확인)
             text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'),
             texttemplate='%{text}',
             textposition='top center',
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            # ✨ 핵심 수정: 선의 색상을 color_map_월에서 가져온 색상으로 설정
-            line=dict(color=line_color)
+            line=dict(color=line_color, width=2) # 선 색상 및 두께 지정
         )
         
         line_chart.update_layout(
             height=550,
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
-            xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
+            # categoryorder는 '월'이 Categorical 타입일 때 자동으로 순서가 적용되므로 제거하거나,
+            # 만약 월이 문자열이라면 이 부분을 유지하여 명시적으로 순서 지정
+            # 여기서는 월을 Categorical로 만들었으므로 삭제하거나 (Plotly가 자동으로 인식),
+            # 아니면 확실하게 명시해 줍니다.
+            xaxis={'categoryorder':'array', 'categoryarray':ordered_months},
             showlegend=False,
             yaxis_tickformat=',',
             paper_bgcolor='rgba(0,0,0,0)',
