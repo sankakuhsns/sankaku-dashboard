@@ -586,41 +586,37 @@ with col_chart4:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         total_sales_monthly = monthly_sales['금액'].sum()
 
-        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        # ✅ 수정: template 인자 제거
         line_chart = px.line(
             monthly_sales,
             x='월',
             y='금액',
-            markers=True, # 각 데이터 포인트에 마커 표시
-            line_shape='linear', # 선 모양 (직선)
-            # color_discrete_sequence는 유지하거나 color_map_월 사용 (단일 라인이라 큰 의미 없음)
-            # 여기서는 Plotly 기본 색상을 사용하거나, 필요시 color_discrete_sequence=px.colors.qualitative.Plotly 등으로 변경
-            # 만약 단일 색상으로 유지하고 싶다면, color 인자를 제거하고 update_traces에서 line.color를 명시
-            # 여기서는 라인이 하나이므로 color='월'은 의미가 없어 제거
-            # custom_data를 px.line 생성 시점에 전달
-            custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
+            markers=True,
+            line_shape='linear',
+            custom_data=['비중']
         )
 
         line_chart.update_traces(
-            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
-            texttemplate='%{y:,.0f}원', # 각 점 위에 금액 표시
-            textposition='top center', # 텍스트 위치 (점 위 중앙)
-            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>"
+            mode='lines+markers+text',
+            text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'),
+            texttemplate='%{text}',
+            textposition='top center',
+            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
+            # ✨ 핵심 수정: 선의 색상을 직접 지정 (예: 'blue' 또는 '#4285F4' 등)
+            # col_chart2가 여러 항목을 구분하듯, col_chart4는 단일 라인이므로 직접 색 지정
+            line=dict(color='#4285F4') # 원하는 HEX 코드 또는 색상 이름으로 변경
         )
         
-        # ✅ 수정: paper_bgcolor와 plot_bgcolor 다시 추가 (col_chart2와 동일하게)
         line_chart.update_layout(
             height=550,
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
             xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
-            showlegend=False, # 범례 숨기기
-            yaxis_tickformat=',', # y축 틱 포맷
-            paper_bgcolor='rgba(0,0,0,0)', # ✨ col_chart2처럼 투명 배경 설정
-            plot_bgcolor='rgba(0,0,0,0)' # ✨ col_chart2처럼 투명 배경 설정
+            showlegend=False,
+            yaxis_tickformat=',',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
