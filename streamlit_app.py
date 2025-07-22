@@ -579,60 +579,57 @@ with col_chart3:
         
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
+    # display_styled_title_box 함수 정의 (이 코드 블록 내에서만 유효)
+    def display_styled_title_box(title, background_color, font_size, margin_bottom):
+        st.markdown(
+            f"""
+            <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; margin-bottom: {margin_bottom};">
+                <h2 style="color: black; font-size: {font_size}; margin: 0;">{title}</h2>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     display_styled_title_box("월별 매출 추이", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
         st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
-        # 1. 월별 매출 합계 계산 (col_chart2처럼 간단한 그룹바이)
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         
-        # 2. 월 순서 정렬을 위한 명시적 카테고리 설정 (Plotly 선 연결의 핵심)
-        # '월' 컬럼을 문자열이 아닌 명확한 순서가 있는 범주형으로 변환합니다.
         ordered_months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
         monthly_sales['월'] = pd.Categorical(monthly_sales['월'], categories=ordered_months, ordered=True)
-        # 월 순서에 따라 데이터프레임을 확실하게 정렬합니다.
         monthly_sales = monthly_sales.sort_values('월')
 
-        # 3. 전체 매출 대비 비중 계산 (호버 템플릿용)
         total_sales_monthly = monthly_sales['금액'].sum()
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        # 4. 라인 차트 선 색상 결정
-        # col_chart2의 color_discrete_map을 참고하여, color_map_월에서 첫 번째 월의 색상을 가져옵니다.
-        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' # 맵이 비어있으면 기본 파란색
+        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
 
-        # 5. Plotly Express 라인 차트 생성 (px.line의 기본적인 인자만 사용)
         line_chart = px.line(
             monthly_sales,
             x='월',
             y='금액',
-            markers=True, # 각 데이터 포인트에 마커 표시
-            # 단일 라인이므로 color='월' 인자는 제거합니다. 선 색상은 update_traces에서 직접 설정합니다.
-            custom_data=[monthly_sales['비중']] # 호버 템플릿에서 사용할 비중 데이터를 전달
+            markers=True,
+            line_shape='linear',
+            custom_data=[monthly_sales['비중']]
         )
 
-        # 6. 차트 트레이스(선, 마커, 텍스트) 설정 (col_chart2의 update_traces 패턴 완벽 적용)
         line_chart.update_traces(
-            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시 (선 연결의 핵심)
-            # col_chart2와 동일한 text 할당 방식
+            mode='lines+markers+text',
             text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'),
-            texttemplate='%{text}', # 할당된 text 값을 그대로 사용
-            textposition='top center', # 텍스트 위치 (점 위 중앙)
-            # col_chart2와 유사한 hovertemplate (여기에 비중 정보 추가)
+            texttemplate='%{text}',
+            textposition='top center',
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            line=dict(color=line_color, width=2) # 선 색상 및 두께 설정
+            line=dict(color=line_color, width=2)
         )
         
-        # 7. 차트 레이아웃 설정 (col_chart2의 update_layout 패턴 완벽 적용)
         line_chart.update_layout(
             height=550,
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
-            # 월 순서를 강제하는 x축 설정 (범주형 '월' 컬럼과 함께 작동)
             xaxis={'categoryorder':'array', 'categoryarray':ordered_months},
-            showlegend=False, # 범례 숨기기 (단일 선이므로 필요 없음)
-            yaxis_tickformat=',', # y축 금액 포맷
-            # col_chart2와 동일하게 배경을 투명하게 설정
+            showlegend=False,
+            yaxis_tickformat=',',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)'
         )
