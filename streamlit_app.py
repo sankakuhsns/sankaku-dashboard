@@ -583,56 +583,59 @@ with col_chart4:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
-        # 월별 매출 합계를 계산하고 '월' 컬럼의 순서를 정렬합니다.
-        # Plotly는 x축이 시간이나 순서형 데이터일 때 선을 자동으로 연결합니다.
+        # 1. 월별 매출 합계 계산
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         
-        # '월' 컬럼을 순서대로 정렬하여 Plotly가 선을 올바르게 연결하도록 돕습니다.
-        # 이 부분이 누락되었을 때 선 연결이 안될 수 있습니다.
+        # 2. 월 순서 정렬을 위한 명시적 카테고리 설정
+        # Plotly가 '1월', '2월' 순서로 선을 연결하도록 돕습니다.
         ordered_months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+        
+        # '월' 컬럼이 문자열이더라도 Plotly는 x축의 categoryorder를 따릅니다.
+        # 데이터프레임 자체를 정렬하여 Plotly의 기본 동작을 더욱 확실히 합니다.
         monthly_sales['월'] = pd.Categorical(monthly_sales['월'], categories=ordered_months, ordered=True)
         monthly_sales = monthly_sales.sort_values('월')
 
-
+        # 3. 전체 매출 대비 비중 계산
         total_sales_monthly = monthly_sales['금액'].sum()
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        # color_map_월에서 선 색상 가져오기 (첫 번째 월의 색상 사용)
+        # 4. 라인 차트 선 색상 결정 (color_map_월에서 첫 번째 월의 색상 사용)
+        # color_map_월이 비어있을 경우를 대비하여 기본 색상을 제공합니다.
         line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
 
+        # 5. Plotly Express 라인 차트 생성
         line_chart = px.line(
             monthly_sales,
             x='월',
             y='금액',
-            # color='월'을 제거하여 단일 선으로 처리
-            # color_discrete_map도 필요 없음
-            markers=True,
-            line_shape='linear',
-            custom_data=['비중']
+            # 'color' 인자를 여기에 사용하지 않습니다. 단일 선의 색상 직접 제어를 위함입니다.
+            markers=True, # 각 데이터 포인트에 마커 표시
+            line_shape='linear', # 선 모양 (직선으로 연결)
+            custom_data=[monthly_sales['비중']] # 호버 템플릿에서 사용할 비중 데이터를 전달
         )
 
+        # 6. 차트 트레이스(선, 마커, 텍스트) 설정
         line_chart.update_traces(
-            mode='lines+markers+text', # ✨ 이 부분이 선을 그리는 핵심 (재확인)
+            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시 (선 연결의 핵심)
+            # col_chart2 방식: text에 포맷된 문자열을 직접 할당
             text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'),
-            texttemplate='%{text}',
-            textposition='top center',
+            texttemplate='%{text}', # 할당된 text 값을 그대로 사용
+            textposition='top center', # 텍스트 위치 (점 위 중앙)
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            line=dict(color=line_color, width=2) # 선 색상 및 두께 지정
+            line=dict(color=line_color, width=2) # 선 색상 및 두께 설정
         )
         
+        # 7. 차트 레이아웃 설정 (col_chart2의 스타일을 따름)
         line_chart.update_layout(
             height=550,
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
-            # categoryorder는 '월'이 Categorical 타입일 때 자동으로 순서가 적용되므로 제거하거나,
-            # 만약 월이 문자열이라면 이 부분을 유지하여 명시적으로 순서 지정
-            # 여기서는 월을 Categorical로 만들었으므로 삭제하거나 (Plotly가 자동으로 인식),
-            # 아니면 확실하게 명시해 줍니다.
+            # 월 순서를 강제하는 x축 설정 (범주형 '월' 컬럼과 함께 작동)
             xaxis={'categoryorder':'array', 'categoryarray':ordered_months},
-            showlegend=False,
-            yaxis_tickformat=',',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
+            showlegend=False, # 범례 숨기기
+            yaxis_tickformat=',', # y축 금액 포맷
+            paper_bgcolor='rgba(0,0,0,0)', # 배경을 투명하게 설정 (Streamlit 배경이 비침)
+            plot_bgcolor='rgba(0,0,0,0)' # 플롯 영역 배경을 투명하게 설정
         )
         st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
