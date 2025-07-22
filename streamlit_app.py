@@ -579,59 +579,55 @@ with col_chart3:
         
         st.plotly_chart(bar1, use_container_width=True)
 with col_chart4:
-    # display_styled_title_box 함수 정의 (이 코드 블록 내에서만 유효)
-    def display_styled_title_box(title, background_color, font_size, margin_bottom):
-        st.markdown(
-            f"""
-            <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; margin-bottom: {margin_bottom};">
-                <h2 style="color: black; font-size: {font_size}; margin: 0;">{title}</h2>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
     display_styled_title_box("월별 매출 추이", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
         st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
+        # 월별 매출 합계 계산
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         
+        # 월 순서를 위한 명시적 카테고리 설정 및 정렬
         ordered_months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
         monthly_sales['월'] = pd.Categorical(monthly_sales['월'], categories=ordered_months, ordered=True)
         monthly_sales = monthly_sales.sort_values('월')
 
+        # 전체 매출 대비 비중 계산 (호버 템플릿용)
         total_sales_monthly = monthly_sales['금액'].sum()
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
+        # 라인 차트 선 색상 결정 (color_map_월에서 첫 번째 월의 색상 사용)
+        # color_map_월 변수는 앱 상단에 정의되어 있어야 합니다.
         line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
 
-        line_chart = px.line(
-            monthly_sales,
-            x='월',
-            y='금액',
-            markers=True,
-            line_shape='linear',
-            custom_data=[monthly_sales['비중']]
-        )
+        # Plotly Express Line 차트 생성
+        line_chart = px.line(monthly_sales,
+                             x='월',
+                             y='금액',
+                             markers=True, # 각 데이터 포인트에 마커 표시
+                             line_shape='linear', # 선 모양 (직선)
+                             custom_data=[monthly_sales['비중']] # 호버 템플릿용 비중 데이터
+                            )
 
+        # 차트 트레이스(선, 마커, 텍스트) 설정
         line_chart.update_traces(
-            mode='lines+markers+text',
-            text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'),
-            texttemplate='%{text}',
-            textposition='top center',
+            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
+            text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'), # 막대 차트처럼 text 속성 사용
+            texttemplate='%{text}', # 할당된 text 값을 사용
+            textposition='top center', # 텍스트 위치 (점 위 중앙)
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            line=dict(color=line_color, width=2)
+            line=dict(color=line_color, width=2) # 선 색상 및 두께 설정
         )
         
+        # 차트 레이아웃 설정 (col_chart2와 동일하게 배경 투명)
         line_chart.update_layout(
             height=550,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
             xaxis_title="월",
             yaxis_title="매출 금액 (원)",
-            xaxis={'categoryorder':'array', 'categoryarray':ordered_months},
-            showlegend=False,
-            yaxis_tickformat=',',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
+            xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
+            showlegend=False, # 범례 숨기기
+            yaxis_tickformat=',', # y축 금액 포맷
         )
         st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
