@@ -578,37 +578,6 @@ with col_chart3:
         )
         
         st.plotly_chart(bar1, use_container_width=True)
-고객님, 월별 매출 추이 차트(col_chart4) 문제로 계속 불편을 드려 정말 죄송합니다. 점점 더 복잡해지고 이상해진다는 말씀에 깊이 공감하며, col_chart2의 코드를 가장 정확한 기준으로 삼아 원점에서 다시 검토하고 col_chart4 코드를 작성해 드리겠습니다.
-
-col_chart2는 여러 개의 선(항목별 트렌드)을 그리는 반면, col_chart4는 월별 총 매출의 추이를 보여주는 하나의 선을 그립니다. 이 차이 때문에 col_chart2의 코드를 그대로 적용하기 어려웠던 부분이 있습니다.
-
-가장 핵심적인 문제는 px.line 함수가 단일 라인을 그릴 때와 여러 라인을 그릴 때의 동작 방식 차이, 그리고 color 인자의 해석 방식입니다. col_chart2는 color='항목1'을 통해 여러 선을 구분하므로 color_discrete_map이 각 선에 적용됩니다. 하지만 col_chart4는 단일 선이므로 color='월'을 사용하면 Plotly가 월별로 선을 끊어 그리려 하거나 의도하지 않은 방식으로 색상을 적용할 수 있습니다.
-
-이번에는 col_chart2의 안정적인 update_traces 및 update_layout 패턴을 철저히 따르면서, col_chart4의 단일 선 특성에 맞게 선 색상을 명확히 지정하는 방식으로 접근하겠습니다.
-
-월별 매출 추이 (col_chart4) 코드 (원점 재검토)
-아래 코드는 col_chart4에 해당하는 부분만 포함하고 있습니다. 이 코드를 사용하시는 Streamlit 앱의 해당 위치에 복사하여 붙여넣으세요. 매출 DataFrame과 color_map_월 변수가 이 코드 블록 이전에 앱에서 정확히 정의되어 있다고 가정합니다.
-
-Python
-
-import pandas as pd
-import plotly.express as px
-import streamlit as st
-
-# --- 이 부분은 실제 앱의 상단에 정의되어 있어야 합니다 ---
-# display_styled_title_box 함수 정의
-def display_styled_title_box(title, background_color, font_size, margin_bottom):
-    st.markdown(
-        f"""
-        <div style="background-color: {background_color}; padding: 10px; border-radius: 5px; margin-bottom: {margin_bottom};">
-            <h2 style="color: black; font-size: {font_size}; margin: 0;">{title}</h2>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-# --- 여기까지 ---
-
-# --- col_chart4 코드 시작 ---
 with col_chart4:
     display_styled_title_box("월별 매출 추이", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
