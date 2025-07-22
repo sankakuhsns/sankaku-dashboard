@@ -588,10 +588,16 @@ with col_chart4:
 
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
+        # color_map_월에서 선 색상 가져오기
+        # 예시: 1월의 색상 또는 color_map_월의 첫 번째 색상 사용
+        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' # 맵이 비어있으면 기본 파란색
+
         line_chart = px.line(
             monthly_sales,
             x='월',
             y='금액',
+            color='월', # 월별 색상 구분을 위해 color='월' 유지 (마커 및 legend/hover에 영향)
+            color_discrete_map=color_map_월, # ✅ color_map_월 적용
             markers=True,
             line_shape='linear',
             custom_data=['비중']
@@ -603,9 +609,8 @@ with col_chart4:
             texttemplate='%{text}',
             textposition='top center',
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            # ✨ 핵심 수정: 선의 색상을 직접 지정 (예: 'blue' 또는 '#4285F4' 등)
-            # col_chart2가 여러 항목을 구분하듯, col_chart4는 단일 라인이므로 직접 색 지정
-            line=dict(color='#4285F4') # 원하는 HEX 코드 또는 색상 이름으로 변경
+            # ✨ 핵심 수정: 선의 색상을 color_map_월에서 가져온 색상으로 설정
+            line=dict(color=line_color)
         )
         
         line_chart.update_layout(
