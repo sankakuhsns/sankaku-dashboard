@@ -583,53 +583,51 @@ with col_chart4:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '월별 매출 추이' 차트를 표시할 수 없습니다.")
     else:
-        # 월별 총 매출 데이터 준비
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
-        
-        # 월 순서를 위한 카테고리 설정 및 정렬
-        ordered_months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
-        monthly_sales['월'] = pd.Categorical(monthly_sales['월'], categories=ordered_months, ordered=True)
-        monthly_sales = monthly_sales.sort_values('월')
-
-        # 비중 계산 (호버 템플릿용)
         total_sales_monthly = monthly_sales['금액'].sum()
+
+        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가 (이전 성공 코드에 있었다고 가정)
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
 
-        # 선 색상 결정: col_chart2의 color_discrete_map_항목1_매출과 같은 팔레트의 첫 번째 색상 사용
-        # 만약 color_map_월의 첫 번째 색상을 사용하고 싶다면: line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4'
-        line_color = px.colors.qualitative.Plotly[0] # Plotly 기본 팔레트의 첫 번째 색상 (주로 파란색)
+        # Plotly Express Line 차트 생성 (이전 성공 코드와 동일)
+        line_chart = px.line(monthly_sales,
+                             x='월',
+                             y='금액',
+                             markers=True, # 각 데이터 포인트에 마커 표시
+                             line_shape='linear', # 선 모양 (직선)
+                             # 'color' 인자를 여기에 추가하지 않습니다. 단일 라인 색상은 update_traces에서 제어합니다.
+                             # custom_data도 여기에 직접 넣는 대신, update_traces에서 전달합니다.
+                            )
 
-        # Plotly Express Line 차트 생성
-        line_chart = px.line(
-            monthly_sales,
-            x='월',
-            y='금액',
-            markers=True, # 각 데이터 포인트에 마커 표시
-            line_shape='linear', # 선 모양 (직선)
-            custom_data=[monthly_sales['비중']] # 호버 템플릿에서 비중 데이터 사용
-        )
+        # 선 색상 결정을 위한 color_map_월에서 첫 번째 월의 색상 가져오기
+        # color_map_월이 비어있을 경우를 대비하여 기본 색상을 제공합니다.
+        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
 
-        # 차트 트레이스 업데이트 (col_chart2의 update_traces와 동일한 패턴)
+        # 차트 트레이스 업데이트 (이전 성공 코드 베이스 + 선 색상 변경)
         line_chart.update_traces(
             mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
-            text=monthly_sales['금액'].apply(lambda x: f'{x:,.0f}원'), # col_chart2처럼 text 할당
-            texttemplate='%{text}', # 할당된 text 값 사용
-            textposition='top center', # 텍스트 위치
-            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>", # 호버 템플릿
-            line=dict(color=line_color, width=2) # 선 색상 및 두께 명시적 지정
+            texttemplate='%{y:,.0f}원', # 각 점 위에 금액 표시
+            textposition='top center', # 텍스트 위치 (점 위 중앙)
+            # hovertemplate과 customdata는 이전 성공 코드에서 사용했던 방식을 그대로 유지합니다.
+            hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
+            customdata=monthly_sales[['비중']], # customdata로 사용할 컬럼(Series) 전달, [[]]로 DataFrame 형식 유지
+            
+            # ✨✨✨ 핵심 변경: 이 부분만 추가합니다. ✨✨✨
+            # 선의 색상만 여기서 직접 지정합니다. 다른 스타일은 건드리지 않습니다.
+            line=dict(color=line_color, width=2) # 선 색상을 color_map_월에서 가져온 색상으로, 두께 2로 설정
         )
         
-        # 차트 레이아웃 업데이트 (col_chart2의 update_layout과 동일한 패턴)
+        # 차트 레이아웃 업데이트 (이전 성공 코드 베이스와 동일)
         line_chart.update_layout(
             height=550,
-            legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), # col_chart2의 범례 설정 (단일 라인이므로 showlegend=False와 함께 사용)
-            yaxis_tickformat=',', # y축 포맷
-            paper_bgcolor='rgba(0,0,0,0)', # col_chart2처럼 배경 투명
-            plot_bgcolor='rgba(0,0,0,0)', # col_chart2처럼 플롯 배경 투명
-            xaxis_title="월", # X축 제목
-            yaxis_title="매출 금액 (원)", # Y축 제목
-            xaxis={'categoryorder':'array', 'categoryarray':ordered_months}, # 월 순서 정렬
-            showlegend=False # 범례 숨기기 (단일 라인이므로)
+            # 테마 문제를 야기했던 paper_bgcolor와 plot_bgcolor를 제거하지 않고 유지합니다.
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="월",
+            yaxis_title="매출 금액 (원)",
+            # 월별 순서를 위한 X축 설정 유지 (이전 성공 코드에 있었다고 가정)
+            xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
+            showlegend=False # 범례 숨기기
         )
         st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
