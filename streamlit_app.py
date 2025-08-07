@@ -824,27 +824,53 @@ display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5
 
 if not df_expense_analysis.empty:
     df_profit_analysis_recalc = df_expense_analysis.copy()
-    df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[[item for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_profit_analysis_recalc.columns]].sum(axis=1)
+    
+    # 총 지출, 순수익, 순수익률은 기본값으로 항상 계산
+    df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[
+        [item for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_profit_analysis_recalc.columns]
+    ].sum(axis=1)
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
-    df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
+    df_profit_analysis_recalc['총순수익률'] = (
+        df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)
+    ) * 100
 
-    df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
-    홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
-    홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
-    df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
-    df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
+    # ✅ 홀매출 기반 순수익 계산 (데이터가 있을 경우에만)
+    if '홀매출_총액' in df_profit_analysis_recalc.columns:
+        df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc['홀매출_총액']
+        홀매출_비중 = (
+            df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)
+        ).fillna(0)
+        홀매출_관련_공통비용 = (
+            df_profit_analysis_recalc[
+                [c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]
+            ].sum(axis=1) * 홀매출_비중
+        )
+        df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
+        df_profit_analysis_recalc['홀순수익률'] = (
+            df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100
+        ).fillna(0)
 
-    df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
-    배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
-    배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
-    배달매출_전용비용 = df_profit_analysis_recalc.get('배달비', 0)
-    df_profit_analysis_recalc['배달순수익'] = df_profit_analysis_recalc['배달매출_분석용'] - (배달매출_관련_공통비용 + 배달매출_전용비용)
-    df_profit_analysis_recalc['배달순수익률'] = (df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
+    # ✅ 배달매출 기반 순수익 계산 (데이터가 있을 경우에만)
+    if '배달매출_총액' in df_profit_analysis_recalc.columns:
+        df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc['배달매출_총액']
+        배달매출_비중 = (
+            df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)
+        ).fillna(0)
+        배달매출_관련_공통비용 = (
+            df_profit_analysis_recalc[
+                [c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]
+            ].sum(axis=1) * 배달매출_비중
+        )
+        배달매출_전용비용 = df_profit_analysis_recalc.get('배달비', 0)
+        df_profit_analysis_recalc['배달순수익'] = (
+            df_profit_analysis_recalc['배달매출_분석용'] - (배달매출_관련_공통비용 + 배달매출_전용비용)
+        )
+        df_profit_analysis_recalc['배달순수익률'] = (
+            df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9) * 100
+        ).fillna(0)
 
-    # ✅ [수정] 월 기준으로 데이터 정렬하여 시간 순서대로 표시
-    # 이 한 줄의 코드가 이 섹션의 모든 선형 그래프에 적용됩니다.
+    # 정렬은 마지막에
     df_profit_analysis_recalc = df_profit_analysis_recalc.sort_values(by='월')
-
 else:
     df_profit_analysis_recalc = pd.DataFrame()
 
