@@ -131,6 +131,10 @@ def load_all_data_from_drive():
                     xls = pd.ExcelFile(fh, engine=engine_to_use)
                     for sheet_name in xls.sheet_names:
                         df_sheet = xls.parse(sheet_name, header=None)
+                        if "대전공장" in file_path:
+                            log = extract_daejeon_sales_log(df_sheet, sheet_name, file_path)
+                            if log:
+                                all_rows.extend(log)
                         all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
                         all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
                     processed_rows['정산표'] += (len(all_rows) - rows_before)
@@ -302,6 +306,32 @@ def extract_from_sheet(df, sheetname, 지점명):
                     분류 = "배달비" if cat == "고정비" and ("배달대행" in 항목_str or "배달수수료" in 항목_str) else cat
                     out.append([날짜, 지점명, "지출", 분류, 항목_str, 금액])
     return out
+    
+def extract_daejeon_sales_log(df, sheetname, filepath):
+    """
+    대전공장 정산표에서 '총매출' 항목이 포함된 셀을 찾아 C열 금액을 추출
+    로그 데이터 형식으로 반환
+    """
+    날짜 = sheetname_to_date(sheetname)
+    if not 날짜:
+        return []
+
+    # 지점명은 경로에서 추출 (예: '정산표/대전공장/25.06.xlsx')
+    parts = filepath.split('/')
+    지점명 = parts[-2] if len(parts) >= 2 else "지점명미상"
+
+    for idx, row in df.iterrows():
+        b_cell = str(row[1]).strip() if pd.notna(row[1]) else ''
+        if '총매출' in b_cell:
+            c_cell = row[2]
+            if pd.notna(c_cell):
+                try:
+                    금액 = int(str(c_cell).replace(',', '').replace(' ', ''))
+                    return [[날짜, 지점명, '매출', '납품매출', '월매출', 금액]]
+                except Exception as e:
+                    print(f"총매출 금액 변환 오류: {e}")
+                    return []
+    return []
 
 # ==================================================================
 #                       >>> 메인 앱 실행 <<<
