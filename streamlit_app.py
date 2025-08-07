@@ -731,7 +731,8 @@ if not 매출.empty:
     df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
-
+    df_expense_analysis = df_expense_analysis[~(df_expense_analysis['지점명'] == '대전공장')]
+    
 # ✅ 필수 컬럼 존재 여부 확인 → 없으면 분석 중단
 필수_컬럼 = ['총매출', '홀매출_총액', '배달매출_총액']
 if df_expense_analysis.empty or not all(col in df_expense_analysis.columns for col in 필수_컬럼):
