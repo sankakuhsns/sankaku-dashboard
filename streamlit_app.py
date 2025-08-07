@@ -704,39 +704,37 @@ with col_chart5:
         st.plotly_chart(bar3, use_container_width=True)
 st.markdown("<a id='expense-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
-# 💸 지출 분석 섹션
+# 💰 순수익 분석 섹션
 ####################################################################################################
 st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
-display_styled_title_box("💸 지출 분석 💸", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-# ✅ 먼저 df_expense_analysis 정의
-df_expense_analysis = pd.DataFrame()
+if not df_expense_analysis.empty:
+    df_profit_analysis_recalc = df_expense_analysis.copy()
+    df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[[item for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_profit_analysis_recalc.columns]].sum(axis=1)
+    df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
+    df_profit_analysis_recalc['총순수익률'] = (df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)) * 100
 
-# ✅ 매출 데이터가 존재할 때만 계산
-if not 매출.empty:
-    총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
-    배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
-    홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
+    df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc.get('홀매출_총액', 0)
+    홀매출_비중 = (df_profit_analysis_recalc['홀매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
+    홀매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 홀매출_비중)
+    df_profit_analysis_recalc['홀순수익'] = df_profit_analysis_recalc['홀매출_분석용'] - 홀매출_관련_공통비용
+    df_profit_analysis_recalc['홀순수익률'] = (df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
-    지출_항목1별_월별_지점별_raw = pd.DataFrame()
-    if not 지출.empty:
-        지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
+    df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc.get('배달매출_총액', 0)
+    배달매출_비중 = (df_profit_analysis_recalc['배달매출_분석용'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)).fillna(0)
+    배달매출_관련_공통비용 = (df_profit_analysis_recalc[[c for c in FIXED_COST_ITEMS + VARIABLE_COST_ITEMS if c in df_profit_analysis_recalc.columns]].sum(axis=1) * 배달매출_비중)
+    배달매출_전용비용 = df_profit_analysis_recalc.get('배달비', 0)
+    df_profit_analysis_recalc['배달순수익'] = df_profit_analysis_recalc['배달매출_분석용'] - (배달매출_관련_공통비용 + 배달매출_전용비용)
+    df_profit_analysis_recalc['배달순수익률'] = (df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9) * 100).fillna(0)
 
-    for col in ALL_POSSIBLE_EXPENSE_CATEGORIES:
-        if col not in 지출_항목1별_월별_지점별_raw.columns:
-            지출_항목1별_월별_지점별_raw[col] = 0
+    # ✅ [수정] 월 기준으로 데이터 정렬하여 시간 순서대로 표시
+    # 이 한 줄의 코드가 이 섹션의 모든 선형 그래프에 적용됩니다.
+    df_profit_analysis_recalc = df_profit_analysis_recalc.sort_values(by='월')
 
-    # ✅ merge 결합
-    df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
-    df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
-    df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
-    df_expense_analysis = df_expense_analysis[~(df_expense_analysis['지점명'] == '대전공장')]
-    
-필수_컬럼 = ['총매출', '홀매출_총액', '배달매출_총액']
-if df_expense_analysis.empty or not all(col in df_expense_analysis.columns for col in 필수_컬럼):
-    st.warning("지출 분석을 위한 데이터가 부족하여 차트를 표시할 수 없습니다.")
 else:
+    df_profit_analysis_recalc = pd.DataFrame()
     
     col_h_exp1, col_h_exp2 = st.columns(2)
     with col_h_exp1:
