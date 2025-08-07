@@ -665,6 +665,7 @@ with col_chart5:
     if 매출.empty:
         st.warning("매출 데이터가 없어 '요일별 매출' 차트를 표시할 수 없습니다.")
     else:
+        매출 = 매출[~((매출['지점명'] == '대전공장') & (매출['항목1'] == '납품매출'))]
         ordered_weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
         daily_sales = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
         total_sales_daily = daily_sales['금액'].sum()
@@ -934,6 +935,9 @@ st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("📊 시뮬레이션 분석 📊", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
 if not df_expense_analysis.empty:
+    # ✅ 대전공장 제외
+    df_expense_analysis = df_expense_analysis[df_expense_analysis['지점명'] != '대전공장']
+   
     # --- UI 너비 및 KPI 카드 스타일을 위한 CSS 주입 ---
     st.markdown("""
         <style>
