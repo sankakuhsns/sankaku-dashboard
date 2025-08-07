@@ -710,7 +710,7 @@ st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-if not df_full_expense_analysis.empty:
+if not df_expense_analysis.empty:
     df_profit_analysis_recalc = df_expense_analysis.copy()
     df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[[item for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_profit_analysis_recalc.columns]].sum(axis=1)
     df_profit_analysis_recalc['총순수익'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['총지출']
