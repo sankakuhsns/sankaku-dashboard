@@ -816,16 +816,28 @@ else:
 
     st.markdown("<a id='profit-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
-# 💰 순수익 분석 섹션
+# 💰 순수익 분석 섹션 (공장 포함, 매출・지출 기반 계산)
 ####################################################################################################
-st.markdown("---")
-st.markdown("<br>", unsafe_allow_html=True)
-display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+if not 매출.empty:
+    # ─ 총매출, 홀매출, 배달매출 계산 ─
+    총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
+    배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
+    홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
 
-if not df_expense_analysis.empty:
-    df_profit_analysis_recalc = df_expense_analysis.copy()
-    
-    # 총 지출, 순수익, 순수익률은 기본값으로 항상 계산
+    # ─ 지출 집계 ─
+    지출_항목1별_월별_지점별_raw = pd.DataFrame()
+    if not 지출.empty:
+        지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
+    for col in ALL_POSSIBLE_EXPENSE_CATEGORIES:
+        if col not in 지출_항목1별_월별_지점별_raw.columns:
+            지출_항목1별_월별_지점별_raw[col] = 0
+
+    # ─ 전체 병합 ─
+    df_profit_analysis_recalc = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
+    df_profit_analysis_recalc = pd.merge(df_profit_analysis_recalc, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
+    df_profit_analysis_recalc = pd.merge(df_profit_analysis_recalc, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
+
+    # ─ 총순수익 계산 ─
     df_profit_analysis_recalc['총지출'] = df_profit_analysis_recalc[
         [item for item in ALL_POSSIBLE_EXPENSE_CATEGORIES if item in df_profit_analysis_recalc.columns]
     ].sum(axis=1)
@@ -834,7 +846,7 @@ if not df_expense_analysis.empty:
         df_profit_analysis_recalc['총순수익'] / df_profit_analysis_recalc['총매출'].replace(0, 1e-9)
     ) * 100
 
-    # ✅ 홀매출 기반 순수익 계산 (데이터가 있을 경우에만)
+    # ─ 홀 순수익 계산 ─
     if '홀매출_총액' in df_profit_analysis_recalc.columns:
         df_profit_analysis_recalc['홀매출_분석용'] = df_profit_analysis_recalc['홀매출_총액']
         홀매출_비중 = (
@@ -850,7 +862,7 @@ if not df_expense_analysis.empty:
             df_profit_analysis_recalc['홀순수익'] / df_profit_analysis_recalc['홀매출_분석용'].replace(0, 1e-9) * 100
         ).fillna(0)
 
-    # ✅ 배달매출 기반 순수익 계산 (데이터가 있을 경우에만)
+    # ─ 배달 순수익 계산 ─
     if '배달매출_총액' in df_profit_analysis_recalc.columns:
         df_profit_analysis_recalc['배달매출_분석용'] = df_profit_analysis_recalc['배달매출_총액']
         배달매출_비중 = (
@@ -869,7 +881,7 @@ if not df_expense_analysis.empty:
             df_profit_analysis_recalc['배달순수익'] / df_profit_analysis_recalc['배달매출_분석용'].replace(0, 1e-9) * 100
         ).fillna(0)
 
-    # 정렬은 마지막에
+    # 정렬
     df_profit_analysis_recalc = df_profit_analysis_recalc.sort_values(by='월')
 else:
     df_profit_analysis_recalc = pd.DataFrame()
