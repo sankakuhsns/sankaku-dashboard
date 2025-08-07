@@ -851,6 +851,13 @@ else:
 ####################################################################################################
 # 💰 순수익 분석 섹션 (공장 포함, 매출・지출 기반 계산)
 ####################################################################################################
+st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
+display_styled_title_box("💰 순수익 분석 💰", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+
+# 공장 포함된 지출 원본 복사
+df_full_expense_analysis = 지출.copy()
+
 if not 매출.empty:
     # ─ 총매출, 홀매출, 배달매출 계산 ─
     총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
@@ -859,8 +866,8 @@ if not 매출.empty:
 
     # ─ 지출 집계 ─
     지출_항목1별_월별_지점별_raw = pd.DataFrame()
-    if not 지출.empty:
-        지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
+    if not df_full_expense_analysis.empty:
+        지출_항목1별_월별_지점별_raw = df_full_expense_analysis.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
     for col in ALL_POSSIBLE_EXPENSE_CATEGORIES:
         if col not in 지출_항목1별_월별_지점별_raw.columns:
             지출_항목1별_월별_지점별_raw[col] = 0
@@ -918,6 +925,7 @@ if not 매출.empty:
     df_profit_analysis_recalc = df_profit_analysis_recalc.sort_values(by='월')
 else:
     df_profit_analysis_recalc = pd.DataFrame()
+
 
 col_profit_rate1_1, col_profit_rate1_2, col_profit_rate1_3 = st.columns(3)
 with col_profit_rate1_1:
