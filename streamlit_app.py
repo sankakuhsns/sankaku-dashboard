@@ -935,9 +935,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("📊 시뮬레이션 분석 📊", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
 if not df_expense_analysis.empty:
-    # ✅ 대전공장 제외
-    df_expense_analysis = df_expense_analysis[df_expense_analysis['지점명'] != '대전공장']
-   
+
     # --- UI 너비 및 KPI 카드 스타일을 위한 CSS 주입 ---
     st.markdown("""
         <style>
