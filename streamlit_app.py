@@ -662,10 +662,13 @@ with col_chart4:
         st.plotly_chart(line_chart, use_container_width=True)
 with col_chart5:
     display_styled_title_box("요일별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
+    
+    # ✅ 먼저 납품매출 제거
+    매출 = 매출[~((매출['지점명'] == '대전공장') & (매출['항목1'] == '납품매출'))]
+   
     if 매출.empty:
         st.warning("매출 데이터가 없어 '요일별 매출' 차트를 표시할 수 없습니다.")
     else:
-        매출 = 매출[~((매출['지점명'] == '대전공장') & (매출['항목1'] == '납품매출'))]
         ordered_weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
         daily_sales = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
         total_sales_daily = daily_sales['금액'].sum()
