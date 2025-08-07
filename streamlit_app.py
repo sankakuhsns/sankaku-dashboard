@@ -710,31 +710,34 @@ st.markdown("---")
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box("💸 지출 분석 💸", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
 
-# ✅ 분석 가능한지 체크
-if (
-    df_expense_analysis.empty or
-    '총매출' not in df_expense_analysis.columns or
-    '홀매출_총액' not in df_expense_analysis.columns or
-    '배달매출_총액' not in df_expense_analysis.columns
-):
-    st.warning("지출 분석을 위한 데이터가 부족하여 차트를 표시할 수 없습니다.")
-    st.stop()
-    
+# ✅ 먼저 df_expense_analysis 정의
+df_expense_analysis = pd.DataFrame()
+
+# ✅ 매출 데이터가 존재할 때만 계산
 if not 매출.empty:
     총매출_월별_지점별 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '총매출'})
     배달매출_월별_지점별 = 매출[매출['항목1'].isin(['배달매출', '포장매출'])].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '배달매출_총액'})
     홀매출_월별_지점별 = 매출[매출['항목1'] == '홀매출'].groupby(['지점명', '월'])['금액'].sum().reset_index().rename(columns={'금액': '홀매출_총액'})
+
     지출_항목1별_월별_지점별_raw = pd.DataFrame()
     if not 지출.empty:
         지출_항목1별_월별_지점별_raw = 지출.groupby(['지점명', '월', '항목1'])['금액'].sum().unstack(level='항목1', fill_value=0).reset_index()
+
     for col in ALL_POSSIBLE_EXPENSE_CATEGORIES:
         if col not in 지출_항목1별_월별_지점별_raw.columns:
             지출_항목1별_월별_지점별_raw[col] = 0
+
+    # ✅ merge 결합
     df_expense_analysis = pd.merge(총매출_월별_지점별, 배달매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 홀매출_월별_지점별, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
-else:
-    df_expense_analysis = pd.DataFrame()
+
+# ✅ 필수 컬럼 존재 여부 확인 → 없으면 분석 중단
+필수_컬럼 = ['총매출', '홀매출_총액', '배달매출_총액']
+if df_expense_analysis.empty or not all(col in df_expense_analysis.columns for col in 필수_컬럼):
+    st.warning("지출 분석을 위한 데이터가 부족하여 차트를 표시할 수 없습니다.")
+    st.stop()
+
 
 col_h_exp1, col_h_exp2 = st.columns(2)
 with col_h_exp1:
