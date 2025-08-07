@@ -444,7 +444,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(f"""
 <div style='background-color: #f5f5f5; padding: 1rem 2rem; border-radius: 8px; border: 1px solid #cccccc; margin-bottom: 2rem; font-size: 16px; color: #333333;'>
     🔎 <b>분석 지점</b>: {", ".join(선택_지점) if 선택_지점 else "전체 지점"}<br>
-    ⚙️ <b>데이터 적용 상태</b>: 최신 상태 반영 완료 ( {분석최소일} ~ {분석최대일} )
+    ⚙️ <b>분석 기간</b>: {분석최소일} ~ {분석최대일} 
 </div>
 """, unsafe_allow_html=True)
 
