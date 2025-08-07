@@ -733,90 +733,88 @@ if not 매출.empty:
     df_expense_analysis = pd.merge(df_expense_analysis, 지출_항목1별_월별_지점별_raw, on=['지점명', '월'], how='left').fillna(0)
     df_expense_analysis = df_expense_analysis[~(df_expense_analysis['지점명'] == '대전공장')]
     
-# ✅ 필수 컬럼 존재 여부 확인 → 없으면 분석 중단
 필수_컬럼 = ['총매출', '홀매출_총액', '배달매출_총액']
 if df_expense_analysis.empty or not all(col in df_expense_analysis.columns for col in 필수_컬럼):
     st.warning("지출 분석을 위한 데이터가 부족하여 차트를 표시할 수 없습니다.")
-    st.stop()
-
-
-col_h_exp1, col_h_exp2 = st.columns(2)
-with col_h_exp1:
-    display_styled_title_box("홀매출 지출 항목 비율", font_size="22px", margin_bottom="20px")
-    홀매출_지출_원형_대상_항목 = [item for item in (VARIABLE_COST_ITEMS + FIXED_COST_ITEMS) if item in df_expense_analysis.columns]
-    pie_data_list_h = []
-    홀매출_분석용_비중_series = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
-    for item in 홀매출_지출_원형_대상_항목:
-        allocated_amount = (df_expense_analysis[item] * 홀매출_분석용_비중_series).sum()
-        if allocated_amount > 0: pie_data_list_h.append({'항목1': item, '금액': allocated_amount})
-    pie_data_h = pd.DataFrame(pie_data_list_h)
-    if pie_data_h.empty or pie_data_h['금액'].sum() == 0:
-        st.warning("홀매출 지출 데이터가 없어 비율 차트를 표시할 수 없습니다.")
-    else:
-        pie_expense_h1 = px.pie(pie_data_h, names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_지출)
-        pie_expense_h1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
-        pie_expense_h1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(pie_expense_h1, use_container_width=True)
-with col_h_exp2:
-    display_styled_title_box("홀매출 지출 항목 월별 지출", font_size="22px", margin_bottom="20px")
-    df_홀지출_월별_data_list = []
-    df_expense_analysis['홀매출_비중_계산용'] = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
-    for item in 홀매출_지출_원형_대상_항목:
-        if item in df_expense_analysis.columns:
-            df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['홀매출_비중_계산용']).sum()).reset_index(name='금액')
-            df_홀지출_월별_data_list.append(df_temp.assign(항목1=item))
-    df_홀지출_월별_data = pd.concat(df_홀지출_월별_data_list, ignore_index=True) if df_홀지출_월별_data_list else pd.DataFrame()
-    if df_홀지출_월별_data.empty or df_홀지출_월별_data['금액'].sum() == 0:
-        st.warning("홀매출 월별 지출 데이터가 없어 트렌드 차트를 표시할 수 없습니다.")
-    else:
-        line_expense_h2 = px.line(df_홀지출_월별_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
-        line_expense_h2.update_traces(text=df_홀지출_월별_data['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
-        line_expense_h2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(line_expense_h2, use_container_width=True)
-
-st.markdown("---")
-col_d_exp1, col_d_exp2 = st.columns(2)
-with col_d_exp1:
-    display_styled_title_box("배달+포장 지출 항목 비율", font_size="22px", margin_bottom="20px")
-    배달매출_지출_원형_데이터_list = []
-    delivery_specific_sum = df_expense_analysis.get('배달비', 0).sum()
-    if delivery_specific_sum > 0: 배달매출_지출_원형_데이터_list.append({'항목1': '배달비', '금액': delivery_specific_sum})
-    기타_지출_항목들_배달관련_원형 = [item for item in (VARIABLE_COST_ITEMS + FIXED_COST_ITEMS) if item in df_expense_analysis.columns]
-    if not df_expense_analysis.empty and '배달매출_총액' in df_expense_analysis.columns:
-        배달매출_비중 = (df_expense_analysis['배달매출_총액'] / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
-        for item in 기타_지출_항목들_배달관련_원형:
-            allocated_amount = (df_expense_analysis[item] * 배달매출_비중).sum()
-            if allocated_amount > 0: 배달매출_지출_원형_데이터_list.append({'항목1': item, '금액': allocated_amount})
-    pie_data_d = pd.DataFrame(배달매출_지출_원형_데이터_list)
-    if pie_data_d.empty or pie_data_d['금액'].sum() == 0:
-        st.warning("배달+포장 지출 데이터가 없어 비율 차트를 표시할 수 없습니다.")
-    else:
-        pie_expense_d1 = px.pie(pie_data_d, names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_지출)
-        pie_expense_d1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
-        pie_expense_d1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(pie_expense_d1, use_container_width=True)
-with col_d_exp2:
-    display_styled_title_box("배달+포장 지출 항목 월별 지출", font_size="22px", margin_bottom="20px")
-    df_temp_line_d_list = []
-    if '배달비' in df_expense_analysis.columns:
-        df_temp = df_expense_analysis.groupby('월')['배달비'].sum().reset_index(name='금액')
-        df_temp_line_d_list.append(df_temp.assign(항목1='배달비'))
-    if '배달매출_총액' in df_expense_analysis.columns:
-        df_expense_analysis['배달매출_비중_계산용'] = (df_expense_analysis['배달매출_총액'] / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
-        for item in 기타_지출_항목들_배달관련_원형:
+else:
+    
+    col_h_exp1, col_h_exp2 = st.columns(2)
+    with col_h_exp1:
+        display_styled_title_box("홀매출 지출 항목 비율", font_size="22px", margin_bottom="20px")
+        홀매출_지출_원형_대상_항목 = [item for item in (VARIABLE_COST_ITEMS + FIXED_COST_ITEMS) if item in df_expense_analysis.columns]
+        pie_data_list_h = []
+        홀매출_분석용_비중_series = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
+        for item in 홀매출_지출_원형_대상_항목:
+            allocated_amount = (df_expense_analysis[item] * 홀매출_분석용_비중_series).sum()
+            if allocated_amount > 0: pie_data_list_h.append({'항목1': item, '금액': allocated_amount})
+        pie_data_h = pd.DataFrame(pie_data_list_h)
+        if pie_data_h.empty or pie_data_h['금액'].sum() == 0:
+            st.warning("홀매출 지출 데이터가 없어 비율 차트를 표시할 수 없습니다.")
+        else:
+            pie_expense_h1 = px.pie(pie_data_h, names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_지출)
+            pie_expense_h1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
+            pie_expense_h1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(pie_expense_h1, use_container_width=True)
+    with col_h_exp2:
+        display_styled_title_box("홀매출 지출 항목 월별 지출", font_size="22px", margin_bottom="20px")
+        df_홀지출_월별_data_list = []
+        df_expense_analysis['홀매출_비중_계산용'] = (df_expense_analysis.get('홀매출_총액', 0) / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
+        for item in 홀매출_지출_원형_대상_항목:
             if item in df_expense_analysis.columns:
-                df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['배달매출_비중_계산용']).sum()).reset_index(name='금액')
-                df_temp_line_d_list.append(df_temp.assign(항목1=item))
-    df_temp_line_d = pd.concat(df_temp_line_d_list, ignore_index=True) if df_temp_line_d_list else pd.DataFrame()
-    if df_temp_line_d.empty or df_temp_line_d['금액'].sum() == 0:
-        st.warning("배달+포장 월별 지출 데이터가 없어 트렌드 차트를 표시할 수 없습니다.")
-    else:
-        line_expense_d2 = px.line(df_temp_line_d, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
-        line_expense_d2.update_traces(text=df_temp_line_d['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
-        line_expense_d2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(line_expense_d2, use_container_width=True)
+                df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['홀매출_비중_계산용']).sum()).reset_index(name='금액')
+                df_홀지출_월별_data_list.append(df_temp.assign(항목1=item))
+        df_홀지출_월별_data = pd.concat(df_홀지출_월별_data_list, ignore_index=True) if df_홀지출_월별_data_list else pd.DataFrame()
+        if df_홀지출_월별_data.empty or df_홀지출_월별_data['금액'].sum() == 0:
+            st.warning("홀매출 월별 지출 데이터가 없어 트렌드 차트를 표시할 수 없습니다.")
+        else:
+            line_expense_h2 = px.line(df_홀지출_월별_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
+            line_expense_h2.update_traces(text=df_홀지출_월별_data['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
+            line_expense_h2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(line_expense_h2, use_container_width=True)
 
-st.markdown("<a id='profit-analysis'></a>", unsafe_allow_html=True)
+    st.markdown("---")
+    col_d_exp1, col_d_exp2 = st.columns(2)
+    with col_d_exp1:
+        display_styled_title_box("배달+포장 지출 항목 비율", font_size="22px", margin_bottom="20px")
+        배달매출_지출_원형_데이터_list = []
+        delivery_specific_sum = df_expense_analysis.get('배달비', 0).sum()
+        if delivery_specific_sum > 0: 배달매출_지출_원형_데이터_list.append({'항목1': '배달비', '금액': delivery_specific_sum})
+        기타_지출_항목들_배달관련_원형 = [item for item in (VARIABLE_COST_ITEMS + FIXED_COST_ITEMS) if item in df_expense_analysis.columns]
+        if not df_expense_analysis.empty and '배달매출_총액' in df_expense_analysis.columns:
+            배달매출_비중 = (df_expense_analysis['배달매출_총액'] / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
+            for item in 기타_지출_항목들_배달관련_원형:
+                allocated_amount = (df_expense_analysis[item] * 배달매출_비중).sum()
+                if allocated_amount > 0: 배달매출_지출_원형_데이터_list.append({'항목1': item, '금액': allocated_amount})
+        pie_data_d = pd.DataFrame(배달매출_지출_원형_데이터_list)
+        if pie_data_d.empty or pie_data_d['금액'].sum() == 0:
+            st.warning("배달+포장 지출 데이터가 없어 비율 차트를 표시할 수 없습니다.")
+        else:
+            pie_expense_d1 = px.pie(pie_data_d, names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_지출)
+            pie_expense_d1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
+            pie_expense_d1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(pie_expense_d1, use_container_width=True)
+    with col_d_exp2:
+        display_styled_title_box("배달+포장 지출 항목 월별 지출", font_size="22px", margin_bottom="20px")
+        df_temp_line_d_list = []
+        if '배달비' in df_expense_analysis.columns:
+            df_temp = df_expense_analysis.groupby('월')['배달비'].sum().reset_index(name='금액')
+            df_temp_line_d_list.append(df_temp.assign(항목1='배달비'))
+        if '배달매출_총액' in df_expense_analysis.columns:
+            df_expense_analysis['배달매출_비중_계산용'] = (df_expense_analysis['배달매출_총액'] / df_expense_analysis['총매출'].replace(0, 1)).fillna(0)
+            for item in 기타_지출_항목들_배달관련_원형:
+                if item in df_expense_analysis.columns:
+                    df_temp = df_expense_analysis.groupby('월').apply(lambda x: (x[item] * x['배달매출_비중_계산용']).sum()).reset_index(name='금액')
+                    df_temp_line_d_list.append(df_temp.assign(항목1=item))
+        df_temp_line_d = pd.concat(df_temp_line_d_list, ignore_index=True) if df_temp_line_d_list else pd.DataFrame()
+        if df_temp_line_d.empty or df_temp_line_d['금액'].sum() == 0:
+            st.warning("배달+포장 월별 지출 데이터가 없어 트렌드 차트를 표시할 수 없습니다.")
+        else:
+            line_expense_d2 = px.line(df_temp_line_d, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_지출)
+            line_expense_d2.update_traces(text=df_temp_line_d['금액'], texttemplate='%{text:,.0f}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
+            line_expense_d2.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(line_expense_d2, use_container_width=True)
+
+    st.markdown("<a id='profit-analysis'></a>", unsafe_allow_html=True)
 ####################################################################################################
 # 💰 순수익 분석 섹션
 ####################################################################################################
