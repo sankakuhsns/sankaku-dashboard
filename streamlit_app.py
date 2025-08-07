@@ -848,6 +848,7 @@ else:
             st.plotly_chart(line_expense_d2, use_container_width=True)
 
     st.markdown("<a id='profit-analysis'></a>", unsafe_allow_html=True)
+    
 ####################################################################################################
 # 💰 순수익 분석 섹션 (공장 포함, 매출・지출 기반 계산)
 ####################################################################################################
@@ -937,21 +938,27 @@ with col_profit_rate1_1:
         line_total_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_total_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%", tickformat=",.2f"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_total_profit_rate, use_container_width=True)
+
+# 공장 제외 후 홀 순수익률 차트
 with col_profit_rate1_2:
     display_styled_title_box("홀 순수익률 추이", font_size="22px", margin_bottom="20px")
-    if df_profit_analysis_recalc.empty or '홀순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['홀순수익률'].isnull().all():
+    df_hall_only = df_profit_analysis_recalc[~df_profit_analysis_recalc['지점명'].str.contains('공장', na=False)]
+    if df_hall_only.empty or '홀순수익률' not in df_hall_only or df_hall_only['홀순수익률'].isnull().all():
         st.warning("데이터가 없어 '홀 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_hall_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='홀순수익률', color='지점명', markers=True, custom_data=['홀순수익'], color_discrete_map=color_map_지점)
+        line_hall_profit_rate = px.line(df_hall_only, x='월', y='홀순수익률', color='지점명', markers=True, custom_data=['홀순수익'], color_discrete_map=color_map_지점)
         line_hall_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_hall_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_hall_profit_rate, use_container_width=True)
+
+# 공장 제외 후 배달 순수익률 차트
 with col_profit_rate1_3:
     display_styled_title_box("배달+포장 순수익률 추이", font_size="22px", margin_bottom="20px")
-    if df_profit_analysis_recalc.empty or '배달순수익률' not in df_profit_analysis_recalc or df_profit_analysis_recalc['배달순수익률'].isnull().all():
+    df_delivery_only = df_profit_analysis_recalc[~df_profit_analysis_recalc['지점명'].str.contains('공장', na=False)]
+    if df_delivery_only.empty or '배달순수익률' not in df_delivery_only or df_delivery_only['배달순수익률'].isnull().all():
         st.warning("데이터가 없어 '배달 순수익률 추이' 차트를 표시할 수 없습니다.")
     else:
-        line_delivery_profit_rate = px.line(df_profit_analysis_recalc, x='월', y='배달순수익률', color='지점명', markers=True, custom_data=['배달순수익'], color_discrete_map=color_map_지점)
+        line_delivery_profit_rate = px.line(df_delivery_only, x='월', y='배달순수익률', color='지점명', markers=True, custom_data=['배달순수익'], color_discrete_map=color_map_지점)
         line_delivery_profit_rate.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>순수익률:</b> %{y:.2f}%<br><b>순수익:</b> %{customdata[0]:,.0f}원<extra></extra>")
         line_delivery_profit_rate.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_delivery_profit_rate, use_container_width=True)
@@ -969,7 +976,6 @@ with col_profit_cost_1:
         df_profit_analysis_recalc['손익분기점_매출'] = (df_profit_analysis_recalc['총고정비_계산'] / df_profit_analysis_recalc['공헌이익률'].replace(0,1e-9)).replace([float('inf'), -float('inf')], 0).fillna(0)
         df_profit_analysis_recalc['안전여유매출액'] = df_profit_analysis_recalc['총매출'] - df_profit_analysis_recalc['손익분기점_매출']
         
-        # groupby를 사용하더라도 원본 df_profit_analysis_recalc가 정렬되어 있으므로 순서가 유지됩니다.
         df_bep_total = df_profit_analysis_recalc.groupby('월').agg(총매출=('총매출', 'sum'), 손익분기점_매출=('손익분기점_매출', 'sum'), 안전여유매출액=('안전여유매출액', 'sum')).reset_index()
         
         fig_bep = go.Figure()
@@ -980,6 +986,7 @@ with col_profit_cost_1:
         fig_bep.update_traces(selector=dict(type='scatter'), texttemplate='%{text:,.0f}', hovertemplate="<b>월:</b> %{x}<br><b>%{data.name}:</b> %{y:,.0f}원<extra></extra>")
         fig_bep.update_layout(barmode='group', height=550, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis=dict(tickformat=","), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_bep, use_container_width=True)
+
 with col_profit_cost_2:
     display_styled_title_box("식자재 원가율 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '식자재' not in df_profit_analysis_recalc.columns:
@@ -990,6 +997,7 @@ with col_profit_cost_2:
         line_food_cost.update_traces(texttemplate='%{y:.2f}%', textposition='top center', hovertemplate="<b>지점:</b> %{fullData.name}<br><b>월:</b> %{x}<br><b>원가율:</b> %{y:.2f}%<extra></extra>")
         line_food_cost.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_food_cost, use_container_width=True)
+
 with col_profit_cost_3:
     display_styled_title_box("인건비 원가율 추이", font_size="22px", margin_bottom="20px")
     if df_profit_analysis_recalc.empty or '인건비' not in df_profit_analysis_recalc.columns:
@@ -1002,6 +1010,7 @@ with col_profit_cost_3:
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
 st.markdown("<a id='ingredient-analysis'></a>", unsafe_allow_html=True)
+
 ####################################################################################################
 # 🥒 식자재 분석 섹션
 ####################################################################################################
