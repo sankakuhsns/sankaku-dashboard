@@ -1188,39 +1188,46 @@ btn = st.button("🚀 시뮬레이션 실행", use_container_width=True)
 if btn:
     sim_costs = {}
 
+    # sim_revenue 보정: 외부에서 계산 안돼 있으면 기본 계산식 사용
+    try:
+        sim_revenue  # 이미 어딘가에서 계산되어 있으면 사용
+    except NameError:
+        sim_revenue = float(base_total_revenue * float(live_total_revenue_growth))
+
     # 1) 매출 비례 항목
     for item in VARIABLE_COST_ITEMS:
         if item in base_costs:
-            gf = live_total_revenue_growth
-            adj = cost_adjustments.get(item, 0.0)
+            gf = float(live_total_revenue_growth)
+            adj = float(cost_adjustments.get(item, 0.0))
             factor = gf * (1 + adj / 100.0) if not (_is_close(gf, 1.0) and _is_close(adj, 0.0)) else 1.0
-            sim_costs[item] = base_costs[item] * factor
+            sim_costs[item] = float(base_costs[item]) * factor
 
     # 2) 배달/포장 비례 항목
     for item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
         if item in base_costs:
-            gf = live_delivery_takeout_revenue_growth
-            adj = cost_adjustments.get(item, 0.0)
+            gf = float(live_delivery_takeout_revenue_growth)
+            adj = float(cost_adjustments.get(item, 0.0))
             factor = gf * (1 + adj / 100.0) if not (_is_close(gf, 1.0) and _is_close(adj, 0.0)) else 1.0
-            sim_costs[item] = base_costs[item] * factor
+            sim_costs[item] = float(base_costs[item]) * factor
 
     # 3) 고정 항목
     for item in FIXED_COST_ITEMS:
         if item in base_costs:
-            adj = cost_adjustments.get(item, 0.0)
+            adj = float(cost_adjustments.get(item, 0.0))
             factor = (1 + adj / 100.0) if not _is_close(adj, 0.0) else 1.0
-            sim_costs[item] = base_costs[item] * factor
+            sim_costs[item] = float(base_costs[item]) * factor
 
     # 4) 기타(정의 밖) → 고정 취급
     defined = set(VARIABLE_COST_ITEMS) | set(DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS) | set(FIXED_COST_ITEMS)
     for item in base_costs:
         if item not in defined:
-            adj = cost_adjustments.get(item, 0.0)
+            adj = float(cost_adjustments.get(item, 0.0))
             factor = (1 + adj / 100.0) if not _is_close(adj, 0.0) else 1.0
-            sim_costs[item] = base_costs[item] * factor
+            sim_costs[item] = float(base_costs[item]) * factor
 
     # 5) 로열티
-    sim_costs['로열티'] = sim_revenue * (royalty_rate / 100.0)
+    royalty_rate = float(royalty_rate)  # 혹시 몰라서 형변환
+    sim_costs['로열티'] = float(sim_revenue) * (royalty_rate / 100.0)
 
     sim_total_cost = float(sum(sim_costs.values()))
     sim_profit = float(sim_revenue - sim_total_cost)
@@ -1309,20 +1316,26 @@ if sim_run and res:
 
     with row1_col2:
         display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+
         df_profit_rate = pd.DataFrame({
             '라벨': ['현재', '시뮬레이션'],
             'x': [0.0, 0.6],
-            '수익률': [base_profit_margin, sim_profit_margin],
-            '수익금액': [base_profit, sim_profit]
+            '수익률': [float(base_profit_margin), float(sim_profit_margin)],
+            '수익금액': [float(base_profit), float(sim_profit)]
         })
+
+        # 디버그(필요시 주석 처리 가능)
+        # st.write("DEBUG df_profit_rate columns:", df_profit_rate.columns.tolist())
+        # st.write("DEBUG df_profit_rate head():", df_profit_rate.head())
 
         fig_profit_rate = px.line(
             df_profit_rate,
             x='x',
             y='수익률',
-            color='구분',
+            color='라벨',  # ✅ 컬럼명 일치
             markers=True,
-            text=df_profit_rate['수익률'].map(lambda v: f"{v:.1f}%")
+            text=df_profit_rate['수익률'].map(lambda v: f"{v:.1f}%"),
+            color_discrete_map=theme_color_map
         )
 
         fig_profit_rate.update_traces(
@@ -1342,7 +1355,7 @@ if sim_run and res:
             showlegend=False,
             xaxis=dict(
                 type='linear',
-                range=[-0.1, 0.9],        # 화면에서 조금 붙어 보이도록 범위 조정
+                range=[-0.1, 0.9],
                 tickmode='array',
                 tickvals=df_profit_rate['x'],
                 ticktext=df_profit_rate['라벨'],
@@ -1350,13 +1363,13 @@ if sim_run and res:
             )
         )
         st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
-        
+
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
 
     with row2_col1:
         display_styled_title_box("현재 비용 구조", font_size="22px", margin_bottom="20px")
-        base_costs_for_pie = {k: v for k, v in base_costs.items() if v > 0}
+        base_costs_for_pie = {k: float(v) for k, v in base_costs.items() if float(v) > 0}
         if base_costs_for_pie:
             r2_c1_sub1, r2_c1_sub2 = st.columns(2)
             with r2_c1_sub1:
@@ -1372,6 +1385,7 @@ if sim_run and res:
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_pie_base, use_container_width=True, key="base_cost_pie")
+
             with r2_c1_sub2:
                 df_base_costs = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
                 fig_bar_base = px.bar(
@@ -1388,10 +1402,12 @@ if sim_run and res:
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
+        else:
+            st.info("현재 비용 데이터가 없습니다.")
 
     with row2_col2:
         display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
-        sim_costs_for_pie = {k: v for k, v in sim_costs.items() if v > 0}
+        sim_costs_for_pie = {k: float(v) for k, v in sim_costs.items() if float(v) > 0}
         if sim_costs_for_pie:
             r2_c2_sub1, r2_c2_sub2 = st.columns(2)
             with r2_c2_sub1:
@@ -1407,6 +1423,7 @@ if sim_run and res:
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_pie_sim, use_container_width=True, key="sim_cost_pie")
+
             with r2_c2_sub2:
                 df_sim_costs = pd.DataFrame(list(sim_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
                 fig_bar_sim = px.bar(
@@ -1423,6 +1440,7 @@ if sim_run and res:
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
+        else:
+            st.info("시뮬레이션 비용 데이터가 없습니다.")
 else:
     st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
-
