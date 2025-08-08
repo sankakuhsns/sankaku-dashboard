@@ -963,6 +963,10 @@ import plotly.express as px
 import streamlit as st
 import math
 
+# ---------- 세션 초기화 ----------
+st.session_state.setdefault("sim_run", False)
+st.session_state.setdefault("sim_result", {})  # 계산 결과 저장용 dict
+
 # ---------- 준비/가드 ----------
 _df = globals().get("df_filtered", None)
 if _df is None or _df.empty:
@@ -1109,18 +1113,15 @@ with sim_hall_col:
 sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
 
 # ---------- 성장계수 (기본값=1.0로 고정) ----------
-# 기본값(슬라이더 미조정)에서는 변동이 없도록 안정화
 if base_total_revenue > 0 and not _is_close(sim_revenue, base_total_revenue):
     live_total_revenue_growth = sim_revenue / base_total_revenue
 else:
     live_total_revenue_growth = 1.0
 
 _est_delivery_takeout = sim_revenue * (sim_delivery_ratio_pct / 100.0)
-
 if base_delivery_takeout_revenue > 0 and not _is_close(_est_delivery_takeout, base_delivery_takeout_revenue):
     live_delivery_takeout_revenue_growth = _est_delivery_takeout / base_delivery_takeout_revenue
 else:
-    # 기본값이거나 분모 0이면 변동 없음
     live_delivery_takeout_revenue_growth = 1.0
 
 # ---------- 비용 상세 조정 ----------
@@ -1146,15 +1147,13 @@ with st.expander("항목별 비용 상세 조정 (선택)"):
                     help_text=f"현재 월평균 {item} 비용(활동월 기준): {base_cost_item:,.0f} 원",
                     key=f"slider_{item}"
                 )
-                # 성장계수 선택(기본값이면 1.0)
                 if item in VARIABLE_COST_ITEMS:
                     growth_factor = live_total_revenue_growth
                 elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
                     growth_factor = live_delivery_takeout_revenue_growth
                 else:
-                    growth_factor = 1.0  # 고정/기타
+                    growth_factor = 1.0
 
-                # 조정률 0이고 성장계수 1이면 변동액 0
                 if _is_close(cost_adjustments[item], 0.0) and _is_close(growth_factor, 1.0):
                     adjustment_amount = 0.0
                 else:
@@ -1185,7 +1184,8 @@ st.success(f"예상 로열티 금액 (월): **{sim_revenue * (royalty_rate / 100
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------- 실행 버튼 ----------
-if st.button("🚀 시뮬레이션 실행", use_container_width=True):
+btn = st.button("🚀 시뮬레이션 실행", use_container_width=True)
+if btn:
     sim_costs = {}
 
     # 1) 매출 비례 항목
@@ -1222,9 +1222,24 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     # 5) 로열티
     sim_costs['로열티'] = sim_revenue * (royalty_rate / 100.0)
 
-    sim_total_cost = sum(sim_costs.values())
-    sim_profit = sim_revenue - sim_total_cost
-    sim_profit_margin = (sim_profit / sim_revenue * 100.0) if sim_revenue > 0 else 0.0
+    sim_total_cost = float(sum(sim_costs.values()))
+    sim_profit = float(sim_revenue - sim_total_cost)
+    sim_profit_margin = float((sim_profit / sim_revenue * 100.0) if sim_revenue > 0 else 0.0)
+
+    # ✅ 세션에 결과 저장 + 플래그 on
+    st.session_state["sim_result"] = {
+        "sim_revenue": float(sim_revenue),
+        "sim_costs": sim_costs,
+        "sim_total_cost": sim_total_cost,
+        "sim_profit": sim_profit,
+        "sim_profit_margin": sim_profit_margin,
+        "base_total_revenue": float(base_total_revenue),
+        "base_total_cost": float(base_total_cost),
+        "base_profit": float(base_profit),
+        "base_profit_margin": float(base_profit_margin),
+        "base_costs": base_costs
+    }
+    st.session_state["sim_run"] = True
 
 # --- 결과 시각화 ---
 st.markdown("---")
@@ -1237,9 +1252,23 @@ cost_item_color_map = {
     '로열티': '#687E8E'
 }
 
-# --- ✅ 수정된 부분: 시뮬레이션 실행 여부를 확인하는 if문 추가 ---
-# 'sim_run' 이라는 변수는 시뮬레이션 실행 버튼을 눌렀을 때 True로 설정되어야 합니다.
-if st.session_state.get('sim_run', False):
+# ✅ 세션 결과 불러오기
+sim_run = st.session_state.get("sim_run", False)
+res = st.session_state.get("sim_result", {})
+
+if sim_run and res:
+    # 언패킹
+    sim_revenue = res["sim_revenue"]
+    sim_costs = res["sim_costs"]
+    sim_total_cost = res["sim_total_cost"]
+    sim_profit = res["sim_profit"]
+    sim_profit_margin = res["sim_profit_margin"]
+    base_total_revenue = res["base_total_revenue"]
+    base_total_cost = res["base_total_cost"]
+    base_profit = res["base_profit"]
+    base_profit_margin = res["base_profit_margin"]
+    base_costs = res["base_costs"]
+
     row1_col1, row1_col2 = st.columns([2, 1])
 
     with row1_col1:
@@ -1317,7 +1346,6 @@ if st.session_state.get('sim_run', False):
         )
         st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
 
-
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
 
@@ -1391,5 +1419,5 @@ if st.session_state.get('sim_run', False):
                 )
                 st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
-    # --- ✅ 수정된 부분: else 블록을 if 블록에 맞춰 올바르게 들여쓰기 ---
     st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
+
