@@ -528,7 +528,6 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
 
 st.markdown("---")
 st.markdown("<a id='sales-analysis'></a>", unsafe_allow_html=True)
-
 #######################
 # 📈 매출 분석 섹션
 #######################
@@ -648,6 +647,7 @@ with col_chart5:
 # 💸 지출 분석 섹션
 ####################################################################################################
 st.markdown("---")
+st.markdown("<a id='expense-analysis'></a>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 display_styled_title_box(
     "💸 지출 분석 💸",
