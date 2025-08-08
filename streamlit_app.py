@@ -413,6 +413,8 @@ with st.sidebar:
     지점목록 = sorted(df['지점명'].unique())
     선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
 
+    st.markdown("""
+    
     # ✅ 월 범위 슬라이더 (연속 월만 허용)
     월옵션 = sorted(df['연월'].unique())
     start_month, end_month = st.select_slider(
