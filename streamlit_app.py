@@ -1077,8 +1077,7 @@ base_profit = base_total_revenue - base_total_cost
 base_profit_margin = (base_profit / base_total_revenue * 100) if base_total_revenue > 0 else 0.0
 
 # ---------- 현재 상태 요약 ----------
-st.subheader("📋 현재 상태 요약 (지점당 '활동월' 평균)")
-st.caption(f"분모 = 매출이 존재한 (지점,연월) 페어 수: {n_active_store_months:,} 개")
+st.subheader("📋 현재 상태 요약")
 st.markdown(f"""
 <div class="kpi-container">
     <div><div class="kpi-label">평균 총매출</div><div class="kpi-value">{base_total_revenue:,.0f} 원</div></div>
