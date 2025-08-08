@@ -1278,50 +1278,53 @@ if sim_run and res:
 
     row1_col1, row1_col2 = st.columns([2, 1])
 
-    with row1_col1:
-        display_styled_title_box("종합 비교", font_size="22px", margin_bottom="12px")
-        r1_sub_col1, r1_sub_col2 = st.columns(2)
+with row1_col1:
+    # ⛳️ '종합 비교' 상단 타이틀 제거하고 두 섹션으로 분리
+    r1_sub_col1, r1_sub_col2 = st.columns(2)
 
-        # === 총매출 비교 (제목 완전 가운데, x축 '구분' 제목만 제거 / 라벨 유지, 여백 축소) ===
-        with r1_sub_col1:
-            df_revenue = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_revenue, sim_revenue]})
-            fig_revenue = px.bar(
-                df_revenue, x='구분', y='금액', color='구분', text_auto=True,
-                title="총매출 비교", color_discrete_map=theme_color_map
-            )
-            fig_revenue.update_traces(
-                texttemplate='%{y:,.0f}',
-                hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
-            )
-            fig_revenue.update_layout(
-                height=380, showlegend=False, yaxis_title="금액(원)",
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                title_x=0.5,  # ✅ 제목 정중앙
-                margin=dict(l=10, r=10, t=28, b=24)  # ✅ 상하 여백 축소
-            )
-            # ✅ x축 라벨(현재/시뮬레이션)은 살리고, 축 제목만 제거
-            fig_revenue.update_xaxes(title=None, showgrid=False)
-            st.plotly_chart(fig_revenue, use_container_width=True, key="sim_revenue_bar")
+    # === 총매출 비교 ===
+    with r1_sub_col1:
+        display_styled_title_box("총매출 비교", font_size="22px", margin_bottom="12px")
+        df_revenue = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_revenue, sim_revenue]})
+        fig_revenue = px.bar(
+            df_revenue, x='구분', y='금액', color='구분', text_auto=True,
+            title=None,  # ← 내부 차트 제목 제거 (위 박스 타이틀만)
+            color_discrete_map=theme_color_map
+        )
+        fig_revenue.update_traces(
+            texttemplate='%{y:,.0f}',
+            hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
+        )
+        fig_revenue.update_layout(
+            height=380, showlegend=False, yaxis_title="금액(원)",
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=10, r=10, t=10, b=24)  # 상단 여백 크게 줄임
+        )
+        # x축 라벨(현재/시뮬레이션)은 유지, 축 제목만 제거
+        fig_revenue.update_xaxes(title=None, showgrid=False)
+        st.plotly_chart(fig_revenue, use_container_width=True, key="sim_revenue_bar")
 
-        # === 총비용 비교 (제목 완전 가운데, x축 '구분' 제목만 제거 / 라벨 유지, 여백 축소) ===
-        with r1_sub_col2:
-            df_cost = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_cost, sim_total_cost]})
-            fig_cost = px.bar(
-                df_cost, x='구분', y='금액', color='구분', text_auto=True,
-                title="총비용 비교", color_discrete_map=theme_color_map
-            )
-            fig_cost.update_traces(
-                texttemplate='%{y:,.0f}',
-                hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
-            )
-            fig_cost.update_layout(
-                height=380, showlegend=False, yaxis_title="금액(원)",
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                title_x=0.5,  # ✅ 제목 정중앙
-                margin=dict(l=10, r=10, t=28, b=24)  # ✅ 상하 여백 축소
-            )
-            fig_cost.update_xaxes(title=None, showgrid=False)
-            st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
+    # === 총지출 비교 ===
+    with r1_sub_col2:
+        display_styled_title_box("총지출 비교", font_size="22px", margin_bottom="12px")
+        df_cost = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_cost, sim_total_cost]})
+        fig_cost = px.bar(
+            df_cost, x='구분', y='금액', color='구분', text_auto=True,
+            title=None,  # ← 내부 차트 제목 제거
+            color_discrete_map=theme_color_map
+        )
+        fig_cost.update_traces(
+            texttemplate='%{y:,.0f}',
+            hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
+        )
+        fig_cost.update_layout(
+            height=380, showlegend=False, yaxis_title="금액(원)",
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=10, r=10, t=10, b=24)
+        )
+        fig_cost.update_xaxes(title=None, showgrid=False)
+        st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
+
 
     # === 순수익률 비교 (두 점 연결, 선 색 테마 적용, 두 점 간격 더 가깝게) ===
     with row1_col2:
