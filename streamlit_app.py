@@ -1383,8 +1383,3 @@ with row2_col2:
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
-
-
-else:
-    st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
-
