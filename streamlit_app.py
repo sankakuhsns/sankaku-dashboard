@@ -1226,17 +1226,20 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     sim_profit = sim_revenue - sim_total_cost
     sim_profit_margin = (sim_profit / sim_revenue * 100.0) if sim_revenue > 0 else 0.0
 
- # ---------- 결과 시각화 ----------
-    st.markdown("---")
-    st.subheader("📈 시뮬레이션 결과 보고서")
+# --- 결과 시각화 ---
+st.markdown("---")
+st.subheader("📈 시뮬레이션 결과 보고서")
 
-    theme_color_map = {'현재': '#B0A696', '시뮬레이션': '#964F4C'}
-    cost_item_color_map = {
-        '식자재': '#964F4C', '인건비': '#7A6C60', '배달비': '#B0A696',
-        '고정비': '#5E534A', '소모품': '#DED3BF', '광고비': '#C0B4A0',
-        '로열티': '#687E8E'
-    }
+theme_color_map = {'현재': '#B0A696', '시뮬레이션': '#964F4C'}
+cost_item_color_map = {
+    '식자재': '#964F4C', '인건비': '#7A6C60', '배달비': '#B0A696',
+    '고정비': '#5E534A', '소모품': '#DED3BF', '광고비': '#C0B4A0',
+    '로열티': '#687E8E'
+}
 
+# --- ✅ 수정된 부분: 시뮬레이션 실행 여부를 확인하는 if문 추가 ---
+# 'sim_run' 이라는 변수는 시뮬레이션 실행 버튼을 눌렀을 때 True로 설정되어야 합니다.
+if st.session_state.get('sim_run', False):
     row1_col1, row1_col2 = st.columns([2, 1])
 
     with row1_col1:
@@ -1275,47 +1278,44 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
             )
             st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
 
-    # ✅ 여기부터가 문제였던 부분 — 반드시 if 블록 안에 유지!
-   with row1_col2:
-    display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
-    df_profit_rate = pd.DataFrame({
-        '구분': ['현재', '시뮬레이션'],
-        '수익률': [base_profit_margin, sim_profit_margin],
-        '수익금액': [base_profit, sim_profit]
-    })
+    with row1_col2:
+        display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+        df_profit_rate = pd.DataFrame({
+            '구분': ['현재', '시뮬레이션'],
+            '수익률': [base_profit_margin, sim_profit_margin],
+            '수익금액': [base_profit, sim_profit]
+        })
 
-    # ✅ 선그래프 + 테마 색상 + 순서 고정
-    fig_profit_rate = px.line(
-        df_profit_rate,
-        x='구분',
-        y='수익률',
-        color='구분',
-        markers=True,
-        text='수익률',
-        color_discrete_map=theme_color_map,
-        category_orders={"구분": ["현재", "시뮬레이션"]}  # 순서 고정
-    )
+        fig_profit_rate = px.line(
+            df_profit_rate,
+            x='구분',
+            y='수익률',
+            color='구분',
+            markers=True,
+            text='수익률',
+            color_discrete_map=theme_color_map,
+            category_orders={"구분": ["현재", "시뮬레이션"]}
+        )
 
-    fig_profit_rate.update_traces(
-        mode='lines+markers',  # 선+마커 표시
-        line=dict(width=3, shape='linear'),
-        marker=dict(size=8, line=dict(width=1, color='#333')),
-        texttemplate='%{text:.1f}%',
-        textposition='top center',
-        hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
-        customdata=df_profit_rate[['수익금액']]
-    )
+        fig_profit_rate.update_traces(
+            mode='lines+markers',
+            line=dict(width=3, shape='linear'),
+            marker=dict(size=8, line=dict(width=1, color='#333')),
+            texttemplate='%{text:.1f}%',
+            textposition='top center',
+            hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
+            customdata=df_profit_rate[['수익금액']]
+        )
 
-    fig_profit_rate.update_layout(
-        height=550,
-        yaxis_title="순수익률 (%)",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(type='category'),
-        showlegend=False
-    )
-
-    st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
+        fig_profit_rate.update_layout(
+            height=550,
+            yaxis_title="순수익률 (%)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(type='category'),
+            showlegend=False
+        )
+        st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
 
 
     st.markdown("---")
@@ -1391,4 +1391,5 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
                 )
                 st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
+    # --- ✅ 수정된 부분: else 블록을 if 블록에 맞춰 올바르게 들여쓰기 ---
     st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
