@@ -1260,29 +1260,45 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
                                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
 
-    with row1_col2:
-        display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
-        df_profit_rate = pd.DataFrame({
-            '구분': ['현재', '시뮬레이션'],
-            '수익률': [base_profit_margin, sim_profit_margin],
-            '수익금액': [base_profit, sim_profit]
-        })
-        # ✅ 라인 그래프로 복귀 + 테마 색상 적용
-        fig_profit_rate = px.line(df_profit_rate, x='구분', y='수익률', markers=True, text='수익률')
-        fig_profit_rate.update_traces(
-            line=dict(color='#687E8E', width=3),
-            marker=dict(size=10, color='#964F4C', line=dict(width=1, color='#333')),
-            texttemplate='%{text:.1f}%',
-            textposition='top center',
-            hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
-            customdata=df_profit_rate[['수익금액']]
-        )
-        fig_profit_rate.update_layout(
-            height=550, yaxis_title="순수익률 (%)",
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(range=[-0.5, 1.5]), showlegend=False
-        )
-        st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
+with row1_col2:
+    display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+    df_profit_rate = pd.DataFrame({
+        '구분': ['현재', '시뮬레이션'],
+        '수익률': [base_profit_margin, sim_profit_margin],
+        '수익금액': [base_profit, sim_profit]
+    })
+
+    # ✅ 라인 그래프 + 테마 색상 적용
+    fig_profit_rate = px.line(
+        df_profit_rate,
+        x='구분',
+        y='수익률',
+        color='구분',  # 색상 기준
+        markers=True,
+        text='수익률',
+        color_discrete_map=theme_color_map  # 테마 적용
+    )
+
+    fig_profit_rate.update_traces(
+        line=dict(width=3),
+        marker=dict(size=10, line=dict(width=1, color='#333')),
+        texttemplate='%{text:.1f}%',
+        textposition='top center',
+        hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
+        customdata=df_profit_rate[['수익금액']]
+    )
+
+    fig_profit_rate.update_layout(
+        height=550,
+        yaxis_title="순수익률 (%)",
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(range=[-0.5, 1.5]),
+        showlegend=False
+    )
+
+    st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
+
 
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
