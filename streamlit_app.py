@@ -1276,7 +1276,7 @@ with row1_col2:
         color='구분',  # 색상 기준
         markers=True,
         text='수익률',
-        color_discrete_map=theme_color_map  # 테마 적용
+        color_discrete_map=theme_color_map  # 테마 색 적용
     )
 
     fig_profit_rate.update_traces(
