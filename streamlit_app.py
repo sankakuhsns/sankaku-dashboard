@@ -1275,97 +1275,44 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
             )
             st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
 
-    # ---------- 결과 시각화 ----------
-    st.markdown("---")
-    st.subheader("📈 시뮬레이션 결과 보고서")
+    # ✅ 여기부터는 반드시 if st.button(...) 블록 안에 있어야 함 (들여쓰기 주의)
+    with row1_col2:
+        display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+        df_profit_rate = pd.DataFrame({
+            '구분': ['현재', '시뮬레이션'],
+            '수익률': [base_profit_margin, sim_profit_margin],
+            '수익금액': [base_profit, sim_profit]
+        })
 
-    theme_color_map = {'현재': '#B0A696', '시뮬레이션': '#964F4C'}
-    cost_item_color_map = {
-        '식자재': '#964F4C', '인건비': '#7A6C60', '배달비': '#B0A696',
-        '고정비': '#5E534A', '소모품': '#DED3BF', '광고비': '#C0B4A0',
-        '로열티': '#687E8E'
-    }
-
-    row1_col1, row1_col2 = st.columns([2, 1])
-
-    with row1_col1:
-        display_styled_title_box("종합 비교", font_size="22px", margin_bottom="20px")
-        r1_sub_col1, r1_sub_col2 = st.columns(2)
-
-        with r1_sub_col1:
-            df_revenue = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_revenue, sim_revenue]})
-            fig_revenue = px.bar(
-                df_revenue, x='구분', y='금액', color='구분', text_auto=True,
-                title="총매출 비교", color_discrete_map=theme_color_map
-            )
-            fig_revenue.update_traces(
-                texttemplate='%{y:,.0f}',
-                hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
-            )
-            fig_revenue.update_layout(
-                height=550, showlegend=False, yaxis_title="금액(원)",
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig_revenue, use_container_width=True, key="sim_revenue_bar")
-
-        with r1_sub_col2:
-            df_cost = pd.DataFrame({'구분': ['현재', '시뮬레이션'], '금액': [base_total_cost, sim_total_cost]})
-            fig_cost = px.bar(
-                df_cost, x='구분', y='금액', color='구분', text_auto=True,
-                title="총비용 비교", color_discrete_map=theme_color_map
-            )
-            fig_cost.update_traces(
-                texttemplate='%{y:,.0f}',
-                hovertemplate="<b>%{x}</b><br>금액: %{y:,.0f}원<extra></extra>"
-            )
-            fig_cost.update_layout(
-                height=550, showlegend=False, yaxis_title="금액(원)",
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
-
-    # ✅ 여기부터가 문제였던 부분 — 반드시 if 블록 안에 유지!
-   with row1_col2:
-    display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
-    df_profit_rate = pd.DataFrame({
-        '구분': ['현재', '시뮬레이션'],
-        '수익률': [base_profit_margin, sim_profit_margin],
-        '수익금액': [base_profit, sim_profit]
-    })
-
-    # ✅ 선그래프 + 테마 색상 + 순서 고정
-    fig_profit_rate = px.line(
-        df_profit_rate,
-        x='구분',
-        y='수익률',
-        color='구분',
-        markers=True,
-        text='수익률',
-        color_discrete_map=theme_color_map,
-        category_orders={"구분": ["현재", "시뮬레이션"]}  # 순서 고정
-    )
-
-    fig_profit_rate.update_traces(
-        mode='lines+markers',  # 선+마커 표시
-        line=dict(width=3, shape='linear'),
-        marker=dict(size=8, line=dict(width=1, color='#333')),
-        texttemplate='%{text:.1f}%',
-        textposition='top center',
-        hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
-        customdata=df_profit_rate[['수익금액']]
-    )
-
-    fig_profit_rate.update_layout(
-        height=550,
-        yaxis_title="순수익률 (%)",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(type='category'),
-        showlegend=False
-    )
-
-    st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
-
+        # 선그래프 + 테마 색상 + 순서 고정
+        fig_profit_rate = px.line(
+            df_profit_rate,
+            x='구분',
+            y='수익률',
+            color='구분',
+            markers=True,
+            text='수익률',
+            color_discrete_map=theme_color_map,
+            category_orders={"구분": ["현재", "시뮬레이션"]}
+        )
+        fig_profit_rate.update_traces(
+            mode='lines+markers',  # 선+마커
+            line=dict(width=3, shape='linear'),
+            marker=dict(size=8, line=dict(width=1, color='#333')),
+            texttemplate='%{text:.1f}%',
+            textposition='top center',
+            hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
+            customdata=df_profit_rate[['수익금액']]
+        )
+        fig_profit_rate.update_layout(
+            height=550,
+            yaxis_title="순수익률 (%)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(type='category'),
+            showlegend=False
+        )
+        st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
 
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
@@ -1439,80 +1386,7 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
-else:
-    st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
-    st.markdown("---")
-    row2_col1, row2_col2 = st.columns(2)
 
-    with row2_col1:
-        display_styled_title_box("현재 비용 구조", font_size="22px", margin_bottom="20px")
-        base_costs_for_pie = {k: v for k, v in base_costs.items() if v > 0}
-        if base_costs_for_pie:
-            r2_c1_sub1, r2_c1_sub2 = st.columns(2)
-            with r2_c1_sub1:
-                pie_data = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액'])
-                fig_pie_base = px.pie(pie_data, names='항목', values='금액')
-                pie_colors = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data['항목']]
-                fig_pie_base.update_traces(
-                    marker=dict(colors=pie_colors), textinfo='percent+label', textfont_size=14,
-                    hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>"
-                )
-                fig_pie_base.update_layout(
-                    height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_pie_base, use_container_width=True, key="base_cost_pie")
-            with r2_c1_sub2:
-                df_base_costs = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
-                fig_bar_base = px.bar(
-                    df_base_costs, x='항목', y='금액', text_auto=True,
-                    color='항목', color_discrete_map=cost_item_color_map
-                )
-                fig_bar_base.update_traces(
-                    texttemplate='%{y:,.0f}',
-                    hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>",
-                    textangle=0
-                )
-                fig_bar_base.update_layout(
-                    height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
-
-    with row2_col2:
-        display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
-        sim_costs_for_pie = {k: v for k, v in sim_costs.items() if v > 0}
-        if sim_costs_for_pie:
-            r2_c2_sub1, r2_c2_sub2 = st.columns(2)
-            with r2_c2_sub1:
-                pie_data_sim = pd.DataFrame(list(sim_costs_for_pie.items()), columns=['항목', '금액'])
-                fig_pie_sim = px.pie(pie_data_sim, names='항목', values='금액')
-                pie_colors_sim = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data_sim['항목']]
-                fig_pie_sim.update_traces(
-                    marker=dict(colors=pie_colors_sim), textinfo='percent+label', textfont_size=14,
-                    hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>"
-                )
-                fig_pie_sim.update_layout(
-                    height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_pie_sim, use_container_width=True, key="sim_cost_pie")
-            with r2_c2_sub2:
-                df_sim_costs = pd.DataFrame(list(sim_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
-                fig_bar_sim = px.bar(
-                    df_sim_costs, x='항목', y='금액', text_auto=True,
-                    color='항목', color_discrete_map=cost_item_color_map
-                )
-                fig_bar_sim.update_traces(
-                    texttemplate='%{y:,.0f}',
-                    hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>",
-                    textangle=0
-                )
-                fig_bar_sim.update_layout(
-                    height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
     st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
 
