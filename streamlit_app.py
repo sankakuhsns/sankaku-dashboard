@@ -532,82 +532,68 @@ st.markdown("<a id='sales-analysis'></a>", unsafe_allow_html=True)
 # 📈 매출 분석 섹션
 #######################
 display_styled_title_box("📈 매출 분석 📈", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+
+# 색상 매핑 사전 생성 (모든 차트에서 재활용)
+chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
+color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
+
+# 1~2번 차트
 col_chart1, col_chart2 = st.columns(2)
 with col_chart1:
     display_styled_title_box("매출 항목 비율", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
         st.warning("매출 데이터가 없어 '매출 항목 비율' 차트를 표시할 수 없습니다.")
     else:
-        # ✅ [수정] color_map_항목1_매출 변수를 사용하도록 수정
-        chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
-        color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
-        pie1 = px.pie(매출.groupby('항목1')['금액'].sum().reset_index(), names='항목1', values='금액', hole=0, color='항목1', color_discrete_map=color_map_항목1_매출)
-        pie1.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>", textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15)
-        pie1.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        pie1 = px.pie(
+            매출.groupby('항목1')['금액'].sum().reset_index(),
+            names='항목1', values='금액', hole=0,
+            color='항목1', color_discrete_map=color_map_항목1_매출
+        )
+        pie1.update_traces(
+            marker=dict(line=dict(color='#cccccc', width=1)),
+            hovertemplate="항목 : %{label}<br>금액: %{value:,.0f}원<extra></extra>",
+            textinfo='label+percent', texttemplate='%{label}<br>%{percent}', textfont_size=15
+        )
+        pie1.update_layout(
+            legend=dict(orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5),
+            height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         st.plotly_chart(pie1, use_container_width=True)
+
 with col_chart2:
     display_styled_title_box("매출 항목 월별 트렌드", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
         st.warning("매출 데이터가 없어 '매출 항목 월별 트렌드' 차트를 표시할 수 없습니다.")
     else:
-        line_data = 매출.groupby(['월','항목1'])['금액'].sum().reset_index()
-        # ✅ [수정] color_map_항목1_매출 변수를 사용하도록 수정
+        line_data = 매출.groupby(['월', '항목1'])['금액'].sum().reset_index()
         line = px.line(line_data, x='월', y='금액', color='항목1', markers=True, color_discrete_map=color_map_항목1_매출)
-        line.update_traces(text=line_data['금액'].apply(lambda x: f'{x:,.0f}'), texttemplate='%{text}', textposition='top center', hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>")
-        line.update_layout(height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        line.update_traces(
+            text=line_data['금액'].apply(lambda x: f'{x:,.0f}'),
+            texttemplate='%{text}', textposition='top center',
+            hovertemplate="항목 : %{fullData.name}<br>금액: %{y:,.0f}원<extra></extra>"
+        )
+        line.update_layout(
+            height=550, legend=dict(title_text='', orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5),
+            yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         st.plotly_chart(line, use_container_width=True)
 
-
-
 st.markdown("---")
+
+# 3~5번 차트
 col_chart3, col_chart4, col_chart5 = st.columns(3)
 with col_chart3:
-    # 1. 차트 제목 변경
     display_styled_title_box("지점별 월 평균 매출 비교", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
-    
     if 매출.empty:
-        # 2. 경고 메시지 내용 변경
         st.warning("매출 데이터가 없어 '지점별 월 평균 매출 비교' 차트를 표시할 수 없습니다.")
     else:
-        # 3. 데이터 집계 방식 변경 (가장 중요한 부분)
-        #   - 기존: 지점별로 전체 매출을 합산 (sum)
-        #   - 변경: 1) 지점별/월별로 매출을 합산하고 -> 2) 지점별로 그 월별 매출값의 평균(mean)을 계산
-        
-        # 1단계: 지점별, 그리고 '월'별로 매출 합계를 계산합니다.
         월별_매출 = 매출.groupby(['지점명', '월'])['금액'].sum().reset_index()
-        
-        # 2단계: 위에서 구한 월별 매출액을 지점별로 그룹화하여 '평균'을 계산합니다.
         평균매출_지점별 = 월별_매출.groupby('지점명')['금액'].mean().reset_index()
-
-        # 4. 변경된 데이터프레임으로 차트 생성
-        bar1 = px.bar(
-            평균매출_지점별,  # 월 평균 매출 데이터 사용
-            x='지점명', 
-            y='금액',          # 이 컬럼은 이제 '월 평균 매출액'을 의미합니다.
-            text='금액', 
-            color='지점명', 
-            color_discrete_map=color_map_지점
-        )
-        
-        # 5. 차트 세부 정보 업데이트 (툴팁 내용 등)
-        bar1.update_traces(
-            texttemplate='%{text:,.0f}원', 
-            textposition='outside', 
-            hovertemplate="지점: %{x}<br><b>월 평균 매출</b>: %{y:,.0f}원<extra></extra>", # hover 텍스트 수정
-            textangle=0
-        )
-        
-        bar1.update_layout(
-            height=550, 
-            xaxis_tickangle=0, 
-            bargap=0.5, 
-            showlegend=False, 
-            yaxis_tickformat=',', 
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        
+        bar1 = px.bar(평균매출_지점별, x='지점명', y='금액', text='금액', color='지점명', color_discrete_map=color_map_지점)
+        bar1.update_traces(texttemplate='%{text:,.0f}원', textposition='outside', hovertemplate="지점: %{x}<br>월 평균 매출: %{y:,.0f}원<extra></extra>", textangle=0)
+        bar1.update_layout(height=550, xaxis_tickangle=0, bargap=0.5, showlegend=False, yaxis_tickformat=',', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(bar1, use_container_width=True)
+
 with col_chart4:
     display_styled_title_box("월별 매출 추이", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
     if 매출.empty:
@@ -615,94 +601,31 @@ with col_chart4:
     else:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         total_sales_monthly = monthly_sales['금액'].sum()
-
-        # 각 월의 비중을 DataFrame에 새 컬럼으로 추가 (이전 성공 코드에 있었다고 가정)
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
-
-        # Plotly Express Line 차트 생성 (이전 성공 코드와 동일)
-        line_chart = px.line(monthly_sales,
-                             x='월',
-                             y='금액',
-                             markers=True, # 각 데이터 포인트에 마커 표시
-                             line_shape='linear', # 선 모양 (직선)
-                             # 'color' 인자를 여기에 추가하지 않습니다. 단일 라인 색상은 update_traces에서 제어합니다.
-                             # custom_data도 여기에 직접 넣는 대신, update_traces에서 전달합니다.
-                            )
-
-        # 선 색상 결정을 위한 color_map_월에서 첫 번째 월의 색상 가져오기
-        # color_map_월이 비어있을 경우를 대비하여 기본 색상을 제공합니다.
-        line_color = next(iter(color_map_월.values())) if color_map_월 else '#1f77b4' 
-
-        # 차트 트레이스 업데이트 (이전 성공 코드 베이스 + 선 색상 변경)
+        line_chart = px.line(monthly_sales, x='월', y='금액', markers=True)
         line_chart.update_traces(
-            mode='lines+markers+text', # 선, 마커, 텍스트 모두 표시
-            texttemplate='%{y:,.0f}원', # 각 점 위에 금액 표시
-            textposition='top center', # 텍스트 위치 (점 위 중앙)
-            # hovertemplate과 customdata는 이전 성공 코드에서 사용했던 방식을 그대로 유지합니다.
+            mode='lines+markers+text', texttemplate='%{y:,.0f}원', textposition='top center',
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            customdata=monthly_sales[['비중']], # customdata로 사용할 컬럼(Series) 전달, [[]]로 DataFrame 형식 유지
-            
-            # ✨✨✨ 핵심 변경: 이 부분만 추가합니다. ✨✨✨
-            # 선의 색상만 여기서 직접 지정합니다. 다른 스타일은 건드리지 않습니다.
-            line=dict(color=line_color, width=2) # 선 색상을 color_map_월에서 가져온 색상으로, 두께 2로 설정
+            customdata=monthly_sales[['비중']], line=dict(color='#1f77b4', width=2)
         )
-        
-        # 차트 레이아웃 업데이트 (이전 성공 코드 베이스와 동일)
-        line_chart.update_layout(
-            height=550,
-            # 테마 문제를 야기했던 paper_bgcolor와 plot_bgcolor를 제거하지 않고 유지합니다.
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="월",
-            yaxis_title="매출 금액 (원)",
-            # 월별 순서를 위한 X축 설정 유지 (이전 성공 코드에 있었다고 가정)
-            xaxis={'categoryorder':'array', 'categoryarray':['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']},
-            showlegend=False # 범례 숨기기
-        )
+        line_chart.update_layout(height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_title="월", yaxis_title="매출 금액 (원)", showlegend=False)
         st.plotly_chart(line_chart, use_container_width=True)
+
 with col_chart5:
     display_styled_title_box("요일별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
-    
-    # ✅ 먼저 납품매출 제거
-    매출 = 매출[~((매출['지점명'] == '대전공장') & (매출['항목1'] == '납품매출'))]
-   
-    if 매출.empty:
+    매출_요일별 = 매출[~((매출['지점명'] == '대전공장') & (매출['항목1'] == '납품매출'))]  # 원본 덮어쓰기 방지
+    if 매출_요일별.empty:
         st.warning("매출 데이터가 없어 '요일별 매출' 차트를 표시할 수 없습니다.")
     else:
         ordered_weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
-        daily_sales = 매출.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
+        daily_sales = 매출_요일별.groupby('요일')['금액'].sum().reindex(ordered_weekdays).reset_index()
         total_sales_daily = daily_sales['금액'].sum()
-
-        # 각 요일의 비중을 DataFrame에 새 컬럼으로 추가
         daily_sales['비중'] = (daily_sales['금액'] / total_sales_daily).fillna(0)
-
-        bar3 = px.bar(daily_sales,
-                      x='요일',
-                      y='금액',
-                      color='요일',
-                      color_discrete_map=color_map_요일,
-                      # custom_data를 px.bar 생성 시점에 전달
-                      custom_data=['비중'] # customdata로 사용할 컬럼 이름 지정
-                     )
-
-        bar3.update_traces(
-            marker=dict(line=dict(color='#cccccc', width=1)),
-            texttemplate='%{y:,.0f}원', # 막대 위에 금액 표시 (Y값 직접 참조)
-            textposition='outside',
-            hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>" # customdata[0]로 첫 번째 custom_data 값 참조
-        )
-
-        bar3.update_layout(
-            height=550,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="요일",
-            yaxis_title="매출 금액 (원)",
-            xaxis={'categoryorder':'array', 'categoryarray': ordered_weekdays},
-            showlegend=False
-        )
+        bar3 = px.bar(daily_sales, x='요일', y='금액', color='요일', color_discrete_map=color_map_요일, custom_data=['비중'])
+        bar3.update_traces(marker=dict(line=dict(color='#cccccc', width=1)), texttemplate='%{y:,.0f}원', textposition='outside', hovertemplate="요일: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>")
+        bar3.update_layout(height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_title="요일", yaxis_title="매출 금액 (원)", xaxis={'categoryorder':'array', 'categoryarray': ordered_weekdays}, showlegend=False)
         st.plotly_chart(bar3, use_container_width=True)
-st.markdown("<a id='expense-analysis'></a>", unsafe_allow_html=True)
+
 ####################################################################################################
 # 💸 지출 분석 섹션
 ####################################################################################################
