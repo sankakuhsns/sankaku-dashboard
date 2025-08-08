@@ -1276,13 +1276,13 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
             st.plotly_chart(fig_cost, use_container_width=True, key="sim_cost_bar")
 
     # ✅ 여기부터가 문제였던 부분 — 반드시 if 블록 안에 유지!
-   with row1_col2:
-    display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
-    df_profit_rate = pd.DataFrame({
-        '구분': ['현재', '시뮬레이션'],
-        '수익률': [base_profit_margin, sim_profit_margin],
-        '수익금액': [base_profit, sim_profit]
-    })
+       with row1_col2:
+        display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
+        df_profit_rate = pd.DataFrame({
+            '구분': ['현재', '시뮬레이션'],
+            '수익률': [base_profit_margin, sim_profit_margin],
+            '수익금액': [base_profit, sim_profit]
+        })
 
     # ✅ 선그래프 + 테마 색상 + 순서 고정
     fig_profit_rate = px.line(
