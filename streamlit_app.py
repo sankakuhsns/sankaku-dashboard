@@ -952,6 +952,23 @@ with col_profit_cost_3:
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
 st.markdown("<a id='ingredient-analysis'></a>", unsafe_allow_html=True)
+####################################################################################################
+# 🥒 식자재 분석 섹션
+####################################################################################################
+st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
+display_styled_title_box("🥒 식자재 분석 🥒", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
+st.subheader("상위 20개 식자재 품목 총액")
+if 식자재_분석용_df.empty:
+    st.warning("식자재 지출 데이터가 없어 상위 20개 리스트를 표시할 수 없습니다.")
+else:
+    top_20_식자재 = 식자재_분석용_df.groupby('항목2')['금액'].sum().nlargest(20).reset_index()
+    top_20_식자재.columns = ['식자재 품목 (세부)', '총 금액']
+    if not top_20_식자재.empty:
+        top_20_식자재['순위'] = range(1, len(top_20_식자재) + 1)
+        total_식자재_금액 = top_20_식자재['총 금액'].sum()
+        top_20_식자재['비중 (%)'] = (top_20_식자재['총 금액'] / total_식자재_금액 * 100).fillna(0) if total_식자재_금액 > 0 else 0
+    st.dataframe(top_20_식자재[['순위', '식자재 품목 (세부)', '총 금액', '비중 (%)']].style.format({"총 금액": "{:,.0f}원", "비중 (%)": "{:.2f}%"}).set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
 
 # ============================================
 # 📊 시뮬레이션 분석 섹션 (변동액 0 안정화 + 라인그래프 복귀)
