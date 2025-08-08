@@ -1328,7 +1328,7 @@ if sim_run and res:
         display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="12px")
 
         # 숫자 x축으로 두 점 간 간격 더 좁힘
-        x_vals   = [0.00, 0.25]  # ✅ 더 가까이 (0.45 → 0.35)
+        x_vals   = [0.1, 0.3]  # ✅ 더 가까이 (0.45 → 0.35)
         tickvals = x_vals
         ticktext = ['현재', '시뮬레이션']
 
