@@ -602,14 +602,31 @@ with col_chart4:
         monthly_sales = 매출.groupby('월')['금액'].sum().reset_index()
         total_sales_monthly = monthly_sales['금액'].sum()
         monthly_sales['비중'] = (monthly_sales['금액'] / total_sales_monthly).fillna(0)
+
+        # 첫 번째 월 색상 가져오기 (테마 반영)
+        line_color = next(iter(color_map_월.values())) if 'color_map_월' in globals() and color_map_월 else '#1f77b4'
+
         line_chart = px.line(monthly_sales, x='월', y='금액', markers=True)
         line_chart.update_traces(
-            mode='lines+markers+text', texttemplate='%{y:,.0f}원', textposition='top center',
+            mode='lines+markers+text',
+            texttemplate='%{y:,.0f}원',
+            textposition='top center',
             hovertemplate="월: %{x}<br>금액: %{y:,.0f}원<br>비중: %{customdata[0]:.1%}<extra></extra>",
-            customdata=monthly_sales[['비중']], line=dict(color='#1f77b4', width=2)
+            customdata=monthly_sales[['비중']],
+            line=dict(color=line_color, width=2)  # 테마 색상 반영
         )
-        line_chart.update_layout(height=550, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_title="월", yaxis_title="매출 금액 (원)", showlegend=False)
+        line_chart.update_layout(
+            height=550,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="월",
+            yaxis_title="매출 금액 (원)",
+            yaxis_tickformat=',',
+            xaxis={'categoryorder':'array', 'categoryarray':['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']},
+            showlegend=False
+        )
         st.plotly_chart(line_chart, use_container_width=True)
+
 
 with col_chart5:
     display_styled_title_box("요일별 매출", background_color="#f5f5f5", font_size="22px", margin_bottom="20px")
