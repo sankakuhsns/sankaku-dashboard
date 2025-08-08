@@ -953,15 +953,15 @@ with col_profit_cost_3:
 st.markdown("<a id='ingredient-analysis'></a>", unsafe_allow_html=True)
 
 # ============================================
-# 📊 시뮬레이션 분석 섹션 (활동월 보정 + 대전공장 제외 + 테마 수정)
-# - df_filtered(사이드바 필터 적용) 기반
-# - 인계/신규 지점 평균 왜곡 방지: '매출 존재 (지점,연월) 개수'로 평균
-# - 대전공장 강제 제외
-# - 순수익률 비교: 테마 컬러 적용된 바 차트
+# 📊 시뮬레이션 분석 섹션 (변동액 0 안정화 + 라인그래프 복귀)
+# - df_filtered 기반
+# - 대전공장 제외 유지
+# - '활동월(매출 존재 (지점,연월))' 평균 방식 유지
 # ============================================
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import math
 
 # ---------- 준비/가드 ----------
 _df = globals().get("df_filtered", None)
@@ -969,7 +969,7 @@ if _df is None or _df.empty:
     st.warning("시뮬레이션을 위한 데이터가 없습니다. 사이드바에서 기간/지점을 조정해 주세요.")
     st.stop()
 
-# 대전공장 제외 (사이드바 선택과 무관하게 시뮬레이션에서 제외)
+# 대전공장 제외
 if '지점명' in _df.columns:
     df_sim = _df[_df['지점명'] != '대전공장'].copy()
 else:
@@ -1004,6 +1004,9 @@ display_styled_title_box = globals().get("display_styled_title_box", _default_ti
 
 _to_num = lambda x: pd.to_numeric(x, errors="coerce")
 
+def _is_close(a, b, tol=1e-9):
+    return abs(float(a) - float(b)) <= tol
+
 # ---------- 앵커 ----------
 st.markdown("<a id='simulation-analysis'></a>", unsafe_allow_html=True)
 
@@ -1036,22 +1039,19 @@ for col in ['항목2', '항목1']:
 매출_df = df_sim[df_sim['분류'] == '매출'].copy()
 지출_df = df_sim[df_sim['분류'] == '지출'].copy()
 
-# ---------- '활동월(매출 존재)' 기반 분모 계산 ----------
-# (지점, 연월) 페어 중 매출 레코드가 존재하는 개수
+# ---------- '활동월(매출 존재)' 기반 분모 ----------
 if {'지점명', '연월'}.issubset(매출_df.columns) and not 매출_df.empty:
     active_pairs = 매출_df[['지점명', '연월']].dropna().drop_duplicates()
     n_active_store_months = int(len(active_pairs)) if len(active_pairs) > 0 else 1
 else:
-    # 매출이 전혀 없을 때는 기존 방식으로 후퇴(선택 월 × 지점수), 그래도 1 이상
     months_selected = sorted(df_sim['연월'].unique()) if '연월' in df_sim.columns else []
     num_months = len(months_selected) if len(months_selected) > 0 else 1
     num_stores = df_sim['지점명'].nunique() if '지점명' in df_sim.columns else 1
     n_active_store_months = max(1, num_months * num_stores)
 
-# ---------- 기준(현재) 값 계산 ----------
+# ---------- 기준(현재) 값 ----------
 base_total_revenue = _to_num(매출_df['금액']).sum() / n_active_store_months
 
-# 홀/배달+포장 매출
 항목1_series = 매출_df['항목1'].astype(str) if '항목1' in 매출_df.columns else pd.Series(dtype=str)
 base_hall_revenue = _to_num(매출_df.loc[항목1_series.eq('홀매출'), '금액']).sum() / n_active_store_months
 base_delivery_takeout_revenue = _to_num(
@@ -1060,7 +1060,6 @@ base_delivery_takeout_revenue = _to_num(
 
 base_hall_ratio = (base_hall_revenue / base_total_revenue * 100) if base_total_revenue > 0 else 0.0
 
-# 비용 카테고리(지점당 활동월 평균)
 present_cost_cats = sorted(지출_df['항목1'].dropna().astype(str).unique()) if '항목1' in 지출_df.columns else []
 merged_cost_cats = list(dict.fromkeys(ALL_POSSIBLE_EXPENSE_CATEGORIES + present_cost_cats))
 
@@ -1109,10 +1108,20 @@ with sim_hall_col:
 
 sim_delivery_ratio_pct = 100.0 - sim_hall_ratio_pct
 
-# 성장계수(총매출/배달+포장 매출 기준)
-live_total_revenue_growth = (sim_revenue / base_total_revenue) if base_total_revenue > 0 else 0.0
+# ---------- 성장계수 (기본값=1.0로 고정) ----------
+# 기본값(슬라이더 미조정)에서는 변동이 없도록 안정화
+if base_total_revenue > 0 and not _is_close(sim_revenue, base_total_revenue):
+    live_total_revenue_growth = sim_revenue / base_total_revenue
+else:
+    live_total_revenue_growth = 1.0
+
 _est_delivery_takeout = sim_revenue * (sim_delivery_ratio_pct / 100.0)
-live_delivery_takeout_revenue_growth = (_est_delivery_takeout / base_delivery_takeout_revenue) if base_delivery_takeout_revenue > 0 else 0.0
+
+if base_delivery_takeout_revenue > 0 and not _is_close(_est_delivery_takeout, base_delivery_takeout_revenue):
+    live_delivery_takeout_revenue_growth = _est_delivery_takeout / base_delivery_takeout_revenue
+else:
+    # 기본값이거나 분모 0이면 변동 없음
+    live_delivery_takeout_revenue_growth = 1.0
 
 # ---------- 비용 상세 조정 ----------
 st.markdown("---")
@@ -1137,7 +1146,7 @@ with st.expander("항목별 비용 상세 조정 (선택)"):
                     help_text=f"현재 월평균 {item} 비용(활동월 기준): {base_cost_item:,.0f} 원",
                     key=f"slider_{item}"
                 )
-                # 성장계수 선택
+                # 성장계수 선택(기본값이면 1.0)
                 if item in VARIABLE_COST_ITEMS:
                     growth_factor = live_total_revenue_growth
                 elif item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
@@ -1145,8 +1154,13 @@ with st.expander("항목별 비용 상세 조정 (선택)"):
                 else:
                     growth_factor = 1.0  # 고정/기타
 
-                final_sim_cost = base_cost_item * growth_factor * (1 + cost_adjustments[item] / 100.0)
-                adjustment_amount = final_sim_cost - base_cost_item
+                # 조정률 0이고 성장계수 1이면 변동액 0
+                if _is_close(cost_adjustments[item], 0.0) and _is_close(growth_factor, 1.0):
+                    adjustment_amount = 0.0
+                else:
+                    final_sim_cost = base_cost_item * growth_factor * (1 + cost_adjustments[item] / 100.0)
+                    adjustment_amount = final_sim_cost - base_cost_item
+
                 sign = "+" if adjustment_amount >= 0 else ""
                 color = "#3D9970" if adjustment_amount >= 0 else "#FF4136"
                 st.markdown(
@@ -1177,23 +1191,33 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     # 1) 매출 비례 항목
     for item in VARIABLE_COST_ITEMS:
         if item in base_costs:
-            sim_costs[item] = base_costs[item] * live_total_revenue_growth * (1 + cost_adjustments.get(item, 0.0) / 100.0)
+            gf = live_total_revenue_growth
+            adj = cost_adjustments.get(item, 0.0)
+            factor = gf * (1 + adj / 100.0) if not (_is_close(gf,1.0) and _is_close(adj,0.0)) else 1.0
+            sim_costs[item] = base_costs[item] * factor
 
     # 2) 배달/포장 비례 항목
     for item in DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS:
         if item in base_costs:
-            sim_costs[item] = base_costs[item] * live_delivery_takeout_revenue_growth * (1 + cost_adjustments.get(item, 0.0) / 100.0)
+            gf = live_delivery_takeout_revenue_growth
+            adj = cost_adjustments.get(item, 0.0)
+            factor = gf * (1 + adj / 100.0) if not (_is_close(gf,1.0) and _is_close(adj,0.0)) else 1.0
+            sim_costs[item] = base_costs[item] * factor
 
     # 3) 고정 항목
     for item in FIXED_COST_ITEMS:
         if item in base_costs:
-            sim_costs[item] = base_costs[item] * (1 + cost_adjustments.get(item, 0.0) / 100.0)
+            adj = cost_adjustments.get(item, 0.0)
+            factor = (1 + adj / 100.0) if not _is_close(adj, 0.0) else 1.0
+            sim_costs[item] = base_costs[item] * factor
 
-    # 4) 기타(정의 밖)는 보수적으로 고정 취급
+    # 4) 기타 항목(정의 밖) → 고정 취급
     defined = set(VARIABLE_COST_ITEMS) | set(DELIVERY_SPECIFIC_VARIABLE_COST_ITEMS) | set(FIXED_COST_ITEMS)
     for item in base_costs:
         if item not in defined:
-            sim_costs[item] = base_costs[item] * (1 + cost_adjustments.get(item, 0.0) / 100.0)
+            adj = cost_adjustments.get(item, 0.0)
+            factor = (1 + adj / 100.0) if not _is_close(adj, 0.0) else 1.0
+            sim_costs[item] = base_costs[item] * factor
 
     # 5) 로열티
     sim_costs['로열티'] = sim_revenue * (royalty_rate / 100.0)
@@ -1243,17 +1267,22 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
             '수익률': [base_profit_margin, sim_profit_margin],
             '수익금액': [base_profit, sim_profit]
         })
-        # ✅ 테마 색상 적용된 바 차트로 교체
-        fig_profit_rate = px.bar(df_profit_rate, x='구분', y='수익률', color='구분',
-                                 text='수익률', color_discrete_map=theme_color_map,
-                                 title="순수익률(%) 비교")
-        fig_profit_rate.update_traces(texttemplate='%{text:.1f}%',
-                                      hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
-                                      customdata=df_profit_rate[['수익금액']])
-        fig_profit_rate.update_layout(height=550, yaxis_title="순수익률 (%)",
-                                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                      showlegend=False)
-        st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_bar")
+        # ✅ 라인 그래프로 복귀 + 테마 색상 적용
+        fig_profit_rate = px.line(df_profit_rate, x='구분', y='수익률', markers=True, text='수익률')
+        fig_profit_rate.update_traces(
+            line=dict(color='#687E8E', width=3),
+            marker=dict(size=10, color='#964F4C', line=dict(width=1, color='#333')),
+            texttemplate='%{text:.1f}%',
+            textposition='top center',
+            hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
+            customdata=df_profit_rate[['수익금액']]
+        )
+        fig_profit_rate.update_layout(
+            height=550, yaxis_title="순수익률 (%)",
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(range=[-0.5, 1.5]), showlegend=False
+        )
+        st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
 
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
@@ -1303,4 +1332,3 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
                 st.plotly_chart(fig_bar_sim, use_container_width=True, key="sim_cost_bar_2")
 else:
     st.info("조건을 조정한 뒤, ‘🚀 시뮬레이션 실행’을 눌러 결과를 확인하세요.")
-
