@@ -355,7 +355,6 @@ st.markdown("""
         text-decoration: none;
         margin-bottom: 1px;         /* 변경: 링크간 간격 최소화 */
         font-size: 0.9rem;
-        /* 변경: font-weight 전환 효과 추가 */
         transition: color 0.2s, font-weight 0.2s, text-decoration-color 0.2s;
     }
     .nav-button:hover {
@@ -363,8 +362,6 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
- 
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -377,21 +374,28 @@ if df_all_branches.empty:
     st.error("처리할 데이터가 없습니다. Google Drive 폴더 또는 파일 내용을 확인해주세요.")
     st.stop()
 
+# 권한 지점 필터
 if "all" in st.session_state.allowed_branches:
     df = df_all_branches.copy()
 else:
     df = df_all_branches[df_all_branches['지점명'].isin(st.session_state.allowed_branches)].copy()
 
-df['월'] = df['날짜'].dt.strftime('%y년 %m월')
-df['요일'] = df['날짜'].dt.day_name().map({'Monday': '월요일', 'Tuesday': '화요일', 'Wednesday': '수요일', 'Thursday': '목요일', 'Friday': '금요일', 'Saturday': '토요일', 'Sunday': '일요일'})
+# 공통 파생 컬럼 (필터 전)
+df['요일'] = df['날짜'].dt.day_name().map({
+    'Monday': '월요일', 'Tuesday': '화요일', 'Wednesday': '수요일',
+    'Thursday': '목요일', 'Friday': '금요일', 'Saturday': '토요일', 'Sunday': '일요일'
+})
 df['항목1'] = df['항목1'].fillna('기타')
 df['항목2'] = df['항목2'].fillna('기타')
+
+# ✅ B안: 월 범위 슬라이더용 연월 컬럼
+df['연월'] = df['날짜'].dt.to_period('M')
 
 with st.sidebar:
     st.info(f"**로그인 계정:**\n\n{st.session_state.user_name}")
     st.markdown("---")
 
-     # ✅ [수정] 여기서는 HTML 링크만 사용합니다.
+    # 바로가기
     st.markdown("""
     <h4>바로가기</h4>
     <a class="nav-button" href="#sales-analysis">📈 매출 분석</a>
@@ -400,19 +404,37 @@ with st.sidebar:
     <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a>
     <a class="nav-button" href="#simulation-analysis">📊 시뮬레이션 분석</a>
     """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    st.markdown("""
-    <h4>지점/기간 선택</h4>
-    """, unsafe_allow_html=True)
-    지점목록 = sorted(df['지점명'].unique())
-    월목록 = sorted(df['월'].unique(), reverse=True)
-    
-    선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
-    선택_월 = st.multiselect("🗓️ 월 선택", 월목록, default=월목록)
 
-df_filtered = df[df['지점명'].isin(선택_지점) & df['월'].isin(선택_월)]
+    st.markdown("---")
+
+    st.markdown("<h4>지점/기간 선택</h4>", unsafe_allow_html=True)
+
+    # 지점 멀티 선택
+    지점목록 = sorted(df['지점명'].unique())
+    선택_지점 = st.multiselect("📍 지점 선택", 지점목록, default=지점목록)
+
+    # ✅ 월 범위 슬라이더 (연속 월만 허용)
+    월옵션 = sorted(df['연월'].unique())
+    start_month, end_month = st.select_slider(
+        "🗓️ 월 범위 선택",
+        options=월옵션,
+        value=(월옵션[0], 월옵션[-1]),
+        format_func=lambda p: f"{p.year%100:02d}년 {p.month:02d}월"
+    )
+
+# ✅ 필터: 지점 + 연속 월 범위
+df_filtered = df[
+    df['지점명'].isin(선택_지점) &
+    (df['연월'] >= start_month) &
+    (df['연월'] <= end_month)
+].copy()
+
+# 차트/집계를 위한 월 문자열 재생성 (예: "25년 06월")
+df_filtered['월'] = (
+    df_filtered['연월'].astype(str)
+    .str.replace('-', '년 ', regex=False)
+    .astype(str) + '월'
+)
 
 if df_filtered.empty:
     st.warning("선택하신 조건에 해당하는 데이터가 없습니다. 필터를 조정해주세요.")
@@ -421,15 +443,18 @@ if df_filtered.empty:
 # --- UI 렌더링을 위한 최종 데이터 준비 ---
 매출 = df_filtered[df_filtered['분류'] == '매출'].copy()
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
-식자재_분석용_df = df_filtered[(df_filtered['분류'] == '식자재') & (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))].copy()
+식자재_분석용_df = df_filtered[
+    (df_filtered['분류'] == '식자재') &
+    (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))
+].copy()
 
-# ✅ [오류 수정] 차트 색상 지정을 위한 컬러맵 변수들을 다시 추가했습니다.
+# ✅ 컬러맵은 "선택된 기간/지점" 기준으로 생성 (불필요한 범례 색 줄임)
 chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
-color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(매출['항목1'].unique())}
-color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(지출['항목1'].unique())}
-color_map_월 = {month: chart_colors_palette[i % len(chart_colors_palette)] for i, month in enumerate(sorted(df['월'].unique()))}
-color_map_요일 = {day: chart_colors_palette[i % len(chart_colors_palette)] for i, day in enumerate(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'])}
-color_map_지점 = {branch: chart_colors_palette[i % len(chart_colors_palette)] for i, branch in enumerate(sorted(df['지점명'].unique()))}
+color_map_항목1_매출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(sorted(매출['항목1'].unique()))}
+color_map_항목1_지출 = {cat: chart_colors_palette[i % len(chart_colors_palette)] for i, cat in enumerate(sorted(지출['항목1'].unique()))}
+color_map_월 = {m: chart_colors_palette[i % len(chart_colors_palette)] for i, m in enumerate(sorted(df_filtered['월'].unique()))}
+color_map_요일 = {d: chart_colors_palette[i % len(chart_colors_palette)] for i, d in enumerate(['월요일','화요일','수요일','목요일','금요일','토요일','일요일'])}
+color_map_지점 = {b: chart_colors_palette[i % len(chart_colors_palette)] for i, b in enumerate(sorted(df_filtered['지점명'].unique()))}
 
 # --- 헤더 및 분석 기간 표시 ---
 분석최소일 = df_filtered['날짜'].min().strftime('%Y-%m-%d')
@@ -444,12 +469,11 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(f"""
 <div style='background-color: #f5f5f5; padding: 1rem 2rem; border-radius: 8px; border: 1px solid #cccccc; margin-bottom: 2rem; font-size: 16px; color: #333333;'>
     🔎 <b>분석 지점</b>: {", ".join(선택_지점) if 선택_지점 else "전체 지점"}<br>
-    ⚙️ <b>분석 기간</b>: {분석최소일} ~ {분석최대일} 
+    ⚙️ <b>분석 기간</b>: {분석최소일} ~ {분석최대일}
 </div>
 """, unsafe_allow_html=True)
 
-# ✅ [최종 수정] 정보 요약 섹션을 HTML/CSS로 직접 렌더링하여 안정성 확보
-# --------------------------------------------------------------------------
+# 요약 KPI
 매출합계 = 매출['금액'].sum()
 지출합계 = 지출['금액'].sum()
 순수익 = 매출합계 - 지출합계
@@ -461,7 +485,7 @@ st.markdown(f"""
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     padding: 25px;
-    background-color: #fafafa; /* 큰 박스 배경색 */
+    background-color: #fafafa;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     margin-bottom: 20px;
 }}
@@ -472,49 +496,26 @@ st.markdown(f"""
     text-align: center;
 }}
 .kpi-card {{
-    background-color: #ffffff; /* 4개 작은 박스 배경색 (더 연하게) */
+    background-color: #ffffff;
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #e8e8e8;
     transition: box-shadow 0.3s ease;
 }}
-.kpi-card:hover {{
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}}
-.kpi-card .kpi-label {{
-    font-size: 1rem;
-    color: #555;
-    margin-bottom: 8px;
-}}
-.kpi-card .kpi-value {{
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #111;
-}}
+.kpi-card:hover {{ box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+.kpi-card .kpi-label {{ font-size: 1rem; color: #555; margin-bottom: 8px; }}
+.kpi-card .kpi-value {{ font-size: 1.75rem; font-weight: 600; color: #111; }}
 </style>
 <div class="summary-container">
     <h2 style='text-align: center; font-size: 32px; margin-bottom: 20px;'>🔸 정보 요약 🔸</h2>
     <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-label">전체 매출</div>
-            <div class="kpi-value">{매출합계:,.0f} 원</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">전체 지출</div>
-            <div class="kpi-value">{지출합계:,.0f} 원</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">순수익</div>
-            <div class="kpi-value">{순수익:,.0f} 원</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">순수익률</div>
-            <div class="kpi-value">{순수익률:.2f}%</div>
-        </div>
+        <div class="kpi-card"><div class="kpi-label">전체 매출</div><div class="kpi-value">{매출합계:,.0f} 원</div></div>
+        <div class="kpi-card"><div class="kpi-label">전체 지출</div><div class="kpi-value">{지출합계:,.0f} 원</div></div>
+        <div class="kpi-card"><div class="kpi-label">순수익</div><div class="kpi-value">{순수익:,.0f} 원</div></div>
+        <div class="kpi-card"><div class="kpi-label">순수익률</div><div class="kpi-value">{순수익률:.2f}%</div></div>
     </div>
 </div>
 """, unsafe_allow_html=True)
-# --------------------------------------------------------------------------
 
 with st.expander("🗂️ 파일 처리 요약 보기"):
     col1, col2 = st.columns(2)
@@ -526,8 +527,8 @@ with st.expander("🗂️ 파일 처리 요약 보기"):
         st.dataframe(pd.DataFrame.from_dict(processed_rows, orient='index', columns=['행 수']))
 
 st.markdown("---")
-
 st.markdown("<a id='sales-analysis'></a>", unsafe_allow_html=True)
+
 #######################
 # 📈 매출 분석 섹션
 #######################
