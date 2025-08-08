@@ -1326,40 +1326,40 @@ if st.button("🚀 시뮬레이션 실행", use_container_width=True):
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
 
-    with row2_col1:
-        display_styled_title_box("현재 비용 구조", font_size="22px", margin_bottom="20px")
-        base_costs_for_pie = {k: v for k, v in base_costs.items() if v > 0}
-        if base_costs_for_pie:
-            r2_c1_sub1, r2_c1_sub2 = st.columns(2)
-            with r2_c1_sub1:
-                pie_data = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액'])
-                fig_pie_base = px.pie(pie_data, names='항목', values='금액')
-                pie_colors = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data['항목']]
-                fig_pie_base.update_traces(
-                    marker=dict(colors=pie_colors), textinfo='percent+label', textfont_size=14,
-                    hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>"
-                )
-                fig_pie_base.update_layout(
-                    height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_pie_base, use_container_width=True, key="base_cost_pie")
-            with r2_c1_sub2:
-                df_base_costs = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
-                fig_bar_base = px.bar(
-                    df_base_costs, x='항목', y='금액', text_auto=True,
-                    color='항목', color_discrete_map=cost_item_color_map
-                )
-                fig_bar_base.update_traces(
-                    texttemplate='%{y:,.0f}',
-                    hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>",
-                    textangle=0
-                )
-                fig_bar_base.update_layout(
-                    height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
+        with row2_col1:
+            display_styled_title_box("현재 비용 구조", font_size="22px", margin_bottom="20px")
+            base_costs_for_pie = {k: v for k, v in base_costs.items() if v > 0}
+            if base_costs_for_pie:
+                r2_c1_sub1, r2_c1_sub2 = st.columns(2)
+                with r2_c1_sub1:
+                    pie_data = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액'])
+                    fig_pie_base = px.pie(pie_data, names='항목', values='금액')
+                    pie_colors = [cost_item_color_map.get(label, '#CCCCCC') for label in pie_data['항목']]
+                    fig_pie_base.update_traces(
+                        marker=dict(colors=pie_colors), textinfo='percent+label', textfont_size=14,
+                        hovertemplate="<b>항목:</b> %{label}<br><b>금액:</b> %{value:,.0f}원<extra></extra>"
+                    )
+                    fig_pie_base.update_layout(
+                        height=450, showlegend=False, margin=dict(l=20, r=20, t=20, b=20),
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+                    )
+                    st.plotly_chart(fig_pie_base, use_container_width=True, key="base_cost_pie")
+                with r2_c1_sub2:
+                    df_base_costs = pd.DataFrame(list(base_costs_for_pie.items()), columns=['항목', '금액']).sort_values('금액', ascending=False)
+                    fig_bar_base = px.bar(
+                        df_base_costs, x='항목', y='금액', text_auto=True,
+                        color='항목', color_discrete_map=cost_item_color_map
+                    )
+                    fig_bar_base.update_traces(
+                        texttemplate='%{y:,.0f}',
+                        hovertemplate="<b>항목:</b> %{x}<br><b>금액:</b> %{y:,.0f}원<extra></extra>",
+                        textangle=0
+                    )
+                    fig_bar_base.update_layout(
+                        height=450, yaxis_title="금액(원)", xaxis_title=None, showlegend=False,
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+                    )
+                    st.plotly_chart(fig_bar_base, use_container_width=True, key="base_cost_bar_2")
 
     with row2_col2:
         display_styled_title_box("시뮬레이션 비용 구조", font_size="22px", margin_bottom="20px")
