@@ -1310,30 +1310,28 @@ if sim_run and res:
     with row1_col2:
         display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="20px")
         df_profit_rate = pd.DataFrame({
-            '구분': ['현재', '시뮬레이션'],
+            '라벨': ['현재', '시뮬레이션'],
+            'x': [0.0, 0.6],
             '수익률': [base_profit_margin, sim_profit_margin],
             '수익금액': [base_profit, sim_profit]
         })
 
         fig_profit_rate = px.line(
             df_profit_rate,
-            x='구분',
+            x='x',
             y='수익률',
             color='구분',
             markers=True,
-            text='수익률',
-            color_discrete_map=theme_color_map,
-            category_orders={"구분": ["현재", "시뮬레이션"]}
+            text=df_profit_rate['수익률'].map(lambda v: f"{v:.1f}%")
         )
 
         fig_profit_rate.update_traces(
-            mode='lines+markers',
+            mode='lines+markers+text',
             line=dict(width=3, shape='linear'),
             marker=dict(size=8, line=dict(width=1, color='#333')),
-            texttemplate='%{text:.1f}%',
             textposition='top center',
-            hovertemplate="<b>%{x}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[0]:,.0f}원<extra></extra>",
-            customdata=df_profit_rate[['수익금액']]
+            hovertemplate="<b>%{customdata[0]}</b><br>수익률: %{y:.1f}%<br>수익금액: %{customdata[1]:,.0f}원<extra></extra>",
+            customdata=df_profit_rate[['라벨', '수익금액']]
         )
 
         fig_profit_rate.update_layout(
@@ -1341,11 +1339,18 @@ if sim_run and res:
             yaxis_title="순수익률 (%)",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(type='category'),
-            showlegend=False
+            showlegend=False,
+            xaxis=dict(
+                type='linear',
+                range=[-0.1, 0.9],        # 화면에서 조금 붙어 보이도록 범위 조정
+                tickmode='array',
+                tickvals=df_profit_rate['x'],
+                ticktext=df_profit_rate['라벨'],
+                showgrid=False
+            )
         )
         st.plotly_chart(fig_profit_rate, use_container_width=True, key="sim_profit_line")
-
+        
     st.markdown("---")
     row2_col1, row2_col2 = st.columns(2)
 
