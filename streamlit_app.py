@@ -20,9 +20,6 @@ DRIVE_FOLDER_ID = '13pZg9s5CKv5nn84Zbnk7L6xmiwF_zluR'
 
 # --- 파일별 설정 상수 ---
 OKPOS_DATA_START_ROW, OKPOS_COL_DATE, OKPOS_COL_DAY_OF_WEEK, OKPOS_COL_DINE_IN_SALES, OKPOS_COL_TAKEOUT_SALES, OKPOS_COL_DELIVERY_SALES = 7, 0, 1, 34, 36, 38
-DOORI_DATA_START_ROW, DOORI_COL_DATE, DOORI_COL_ITEM, DOORI_COL_AMOUNT = 4, 1, 3, 6
-SINSEONG_DATA_START_ROW = 3
-OURHOME_DATA_START_ROW, OURHOME_COL_DATE, OURHOME_COL_ITEM, OURHOME_COL_AMOUNT, OURHOME_FILTER_COL = 0, 1, 3, 11, 14
 SETTLEMENT_DATA_START_ROW, SETTLEMENT_COL_PERSONNEL_NAME, SETTLEMENT_COL_PERSONNEL_AMOUNT, SETTLEMENT_COL_FOOD_ITEM, SETTLEMENT_COL_FOOD_AMOUNT, SETTLEMENT_COL_SUPPLIES_ITEM, SETTLEMENT_COL_SUPPLIES_AMOUNT, SETTLEMENT_COL_AD_ITEM, SETTLEMENT_COL_AD_AMOUNT, SETTLEMENT_COL_FIXED_ITEM, SETTLEMENT_COL_FIXED_AMOUNT = 3, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14
 
 # --- 분석용 카테고리 정의 ---
@@ -100,8 +97,8 @@ def load_all_data_from_drive():
         drive_service = build('drive', 'v3', credentials=credentials)
         all_files = list_files_recursive(drive_service, DRIVE_FOLDER_ID)
         all_rows = []
-        file_counts = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0, '기타/미지원': 0}
-        processed_rows = {'OKPOS': 0, '정산표': 0, '두리축산': 0, '신성미트': 0, '아워홈': 0}
+        file_counts = {'OKPOS': 0, '정산표': 0, '기타/미지원': 0}
+        processed_rows = {'OKPOS': 0, '정산표': 0}
         for file in all_files:
             file_id, file_name = file['id'], file['name']
             file_path = file.get('path', file_name)
@@ -138,21 +135,7 @@ def load_all_data_from_drive():
                         all_rows.extend(extract_from_sheet(df_sheet, sheet_name, 지점명))
                         all_rows.extend(extract_kim_myeon_dashima(df_sheet, sheet_name, 지점명))
                     processed_rows['정산표'] += (len(all_rows) - rows_before)
-                elif "두리축산" in file_path:
-                    file_counts['두리축산'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_doori(df_sheet, 지점명))
-                    processed_rows['두리축산'] += (len(all_rows) - rows_before)
-                elif "신성미트" in file_path:
-                    file_counts['신성미트'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_sinseongmeat(df_sheet, 지점명))
-                    processed_rows['신성미트'] += (len(all_rows) - rows_before)
-                elif "아워홈" in file_path:
-                    file_counts['아워홈'] += 1
-                    df_sheet = pd.read_excel(fh, header=None, engine=engine_to_use)
-                    all_rows.extend(extract_ourhome(df_sheet, 지점명))
-                    processed_rows['아워홈'] += (len(all_rows) - rows_before)
+
             except Exception as e:
                 st.warning(f"😥 '{file_path}' 파일 처리 중 오류 발생: {e}")
         if not all_rows: return pd.DataFrame(), {}, {}
@@ -220,51 +203,6 @@ def extract_okpos_table(df, 지점명):
         if pd.notna(배달매출) and 배달매출 > 0: out.append([날짜, 지점명, '매출', '배달매출', 요일_str, 배달매출])
     return out
 
-def extract_doori(df, 지점명):
-    out = []
-    for i in range(DOORI_DATA_START_ROW, df.shape[0]):
-        if pd.isna(df.iloc[i, 0]) or str(df.iloc[i, 0]).strip() == '': break
-        try: 날짜 = pd.to_datetime(df.iloc[i, DOORI_COL_DATE]).strftime('%Y-%m-%d')
-        except (ValueError, TypeError): continue
-        항목2, 금액 = str(df.iloc[i, DOORI_COL_ITEM]).strip(), pd.to_numeric(df.iloc[i, DOORI_COL_AMOUNT], errors='coerce')
-        if pd.notna(금액) and 금액 > 0 and 항목2:
-            out.append([날짜, 지점명, '식자재', '두리축산', 항목2, 금액])
-    return out
-
-def extract_sinseongmeat(df, 지점명):
-    out = []
-    for i in range(SINSEONG_DATA_START_ROW, df.shape[0]):
-        try:
-            date_cell = str(df.iloc[i, 0]).strip()
-            if not date_cell or '계' in date_cell or '이월' in date_cell: continue
-            try:
-                날짜 = pd.to_datetime(date_cell, errors='coerce')
-                if pd.isna(날짜): continue
-                날짜 = 날짜.strftime('%Y-%m-%d')
-            except Exception: continue
-            항목2 = str(df.iloc[i, 2]).strip()
-            if not 항목2 or any(k in 항목2 for k in ['[일 계]', '[월계]', '합계', '이월금액']): continue
-            raw_amount = str(df.iloc[i, 8]).replace(",", "").strip()
-            금액 = pd.to_numeric(raw_amount, errors='coerce')
-            if pd.isna(금액) or 금액 <= 0: continue
-            out.append([날짜, 지점명, '식자재', '신성미트', 항목2, 금액])
-        except (ValueError, TypeError, IndexError): continue
-    return out
-
-def extract_ourhome(df, 지점명):
-    out, current_date = [], None
-    for i in range(OURHOME_DATA_START_ROW, df.shape[0]):
-        if len(df.columns) <= OURHOME_FILTER_COL or pd.isna(df.iloc[i, OURHOME_FILTER_COL]) or '아워홈' not in str(df.iloc[i, OURHOME_FILTER_COL]): continue
-        raw_date_cell = df.iloc[i, OURHOME_COL_DATE]
-        if pd.notna(raw_date_cell):
-            try: current_date = pd.to_datetime(str(raw_date_cell), format='%Y%m%d').strftime('%Y-%m-%d')
-            except (ValueError, TypeError): pass
-        if not current_date: continue
-        항목2, 금액 = str(df.iloc[i, OURHOME_COL_ITEM]).strip(), pd.to_numeric(df.iloc[i, OURHOME_COL_AMOUNT], errors='coerce')
-        if pd.notna(금액) and 금액 > 0 and 항목2 and not any(k in 항목2 for k in ['소계', '합계', '총매입액']):
-            out.append([current_date, 지점명, '식자재', '아워홈', 항목2, 금액])
-    return out
-
 def extract_kim_myeon_dashima(df, sheetname, 지점명):
     날짜 = sheetname_to_date(sheetname)
     if not 날짜: return []
@@ -306,7 +244,7 @@ def extract_from_sheet(df, sheetname, 지점명):
                     분류 = "배달비" if cat == "고정비" and ("배달대행" in 항목_str or "배달수수료" in 항목_str) else cat
                     out.append([날짜, 지점명, "지출", 분류, 항목_str, 금액])
     return out
-    
+
 def extract_daejeon_sales_log(df, sheetname, filepath):
     """
     대전공장 정산표에서 '총매출' 항목이 포함된 셀을 찾아 C열 금액을 추출
@@ -344,21 +282,21 @@ st.markdown("""
     /* 1. 링크들을 감싸는 박스 스타일 추가 */
     .link-container {
         border: 1px solid #e0e0e0; /* 연한 회색 테두리 */
-        border-radius: 8px;       /* 모서리를 둥글게 */
-        padding: 15px;            /* 박스 안쪽 여백 */
+        border-radius: 8px;      /* 모서리를 둥글게 */
+        padding: 15px;           /* 박스 안쪽 여백 */
     }
 
     .nav-button {
         display: block;
-        padding: 2px 0;             /* 변경: 상하 여백 줄임 (줄간격 축소) */
+        padding: 2px 0;              /* 변경: 상하 여백 줄임 (줄간격 축소) */
         color: #333 !important;
         text-decoration: none;
-        margin-bottom: 1px;         /* 변경: 링크간 간격 최소화 */
+        margin-bottom: 1px;          /* 변경: 링크간 간격 최소화 */
         font-size: 0.9rem;
         transition: color 0.2s, font-weight 0.2s, text-decoration-color 0.2s;
     }
     .nav-button:hover {
-        font-weight: bold;          /* 추가: 마우스 올리면 글자 굵게 */
+        font-weight: bold;           /* 추가: 마우스 올리면 글자 굵게 */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -401,7 +339,6 @@ with st.sidebar:
     <a class="nav-button" href="#sales-analysis">📈 매출 분석</a>
     <a class="nav-button" href="#expense-analysis">💸 지출 분석</a>
     <a class="nav-button" href="#profit-analysis">💰 순수익 분석</a>
-    <a class="nav-button" href="#ingredient-analysis">🥒 식자재 분석</a>
     <a class="nav-button" href="#simulation-analysis">📊 시뮬레이션 분석</a>
     """, unsafe_allow_html=True)
 
@@ -443,10 +380,6 @@ if df_filtered.empty:
 # --- UI 렌더링을 위한 최종 데이터 준비 ---
 매출 = df_filtered[df_filtered['분류'] == '매출'].copy()
 지출 = df_filtered[df_filtered['분류'] == '지출'].copy()
-식자재_분석용_df = df_filtered[
-    (df_filtered['분류'] == '식자재') &
-    (~df_filtered['항목2'].astype(str).str.contains("소계|총계|합계|전체|총액|이월금액|일계", na=False, regex=True))
-].copy()
 
 # ✅ 컬러맵은 "선택된 기간/지점" 기준으로 생성 (불필요한 범례 색 줄임)
 chart_colors_palette = ['#964F4C', '#7A6C60', '#B0A696', '#5E534A', '#DED3BF', '#C0B4A0', '#F0E6D8', '#687E8E']
@@ -951,25 +884,6 @@ with col_profit_cost_3:
         line_labor_cost.update_layout(height=550, legend=dict(title_text="", orientation="h", yanchor="bottom", y=1.15, xanchor="center", x=0.5), yaxis=dict(ticksuffix="%"), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(line_labor_cost, use_container_width=True)
 
-st.markdown("<a id='ingredient-analysis'></a>", unsafe_allow_html=True)
-####################################################################################################
-# 🥒 식자재 분석 섹션
-####################################################################################################
-st.markdown("---")
-st.markdown("<br>", unsafe_allow_html=True)
-display_styled_title_box("🥒 식자재 분석 🥒", background_color="#f5f5f5", font_size="32px", margin_bottom="20px", padding_y="15px")
-st.subheader("상위 20개 식자재 품목 총액")
-if 식자재_분석용_df.empty:
-    st.warning("식자재 지출 데이터가 없어 상위 20개 리스트를 표시할 수 없습니다.")
-else:
-    top_20_식자재 = 식자재_분석용_df.groupby('항목2')['금액'].sum().nlargest(20).reset_index()
-    top_20_식자재.columns = ['식자재 품목 (세부)', '총 금액']
-    if not top_20_식자재.empty:
-        top_20_식자재['순위'] = range(1, len(top_20_식자재) + 1)
-        total_식자재_금액 = top_20_식자재['총 금액'].sum()
-        top_20_식자재['비중 (%)'] = (top_20_식자재['총 금액'] / total_식자재_금액 * 100).fillna(0) if total_식자재_금액 > 0 else 0
-    st.dataframe(top_20_식자재[['순위', '식자재 품목 (세부)', '총 금액', '비중 (%)']].style.format({"총 금액": "{:,.0f}원", "비중 (%)": "{:.2f}%"}).set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
-
 # ============================================
 # 📊 시뮬레이션 분석 섹션 (변동액 0 안정화 + 라인그래프 복귀)
 # - df_filtered 기반
@@ -1013,7 +927,7 @@ FIXED_COST_ITEMS = globals().get("FIXED_COST_ITEMS", ['인건비', '광고비', 
 def _default_slider(label, min_value, max_value, default_value, step, help_text="", key=None, format_str=None):
     fmt = format_str if format_str else None
     return st.slider(label, min_value=float(min_value), max_value=float(max_value),
-                     value=float(default_value), step=float(step), help=help_text, key=key, format=fmt)
+                         value=float(default_value), step=float(step), help=help_text, key=key, format=fmt)
 custom_slider = globals().get("custom_slider", _default_slider)
 
 def _default_title_box(text, background_color="#f5f5f5", font_size="22px", margin_bottom="12px", padding_y="8px"):
@@ -1347,7 +1261,7 @@ if sim_run and res:
         display_styled_title_box("순수익률 비교", font_size="22px", margin_bottom="12px")
 
         # 간격 조절
-        x_vals   = [0.05, 0.30]
+        x_vals    = [0.05, 0.30]
         tickvals = x_vals
         ticktext = ['현재', '시뮬레이션']
 
